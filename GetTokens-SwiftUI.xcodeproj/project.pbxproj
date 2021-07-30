@@ -15,6 +15,18 @@
 		41022AEA26B32AAC00F20185 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41022ABF26B32AAA00F20185 /* ContentView.swift */; };
 		41022AEB26B32AAC00F20185 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 41022AC026B32AAC00F20185 /* Assets.xcassets */; };
 		41022AEC26B32AAC00F20185 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 41022AC026B32AAC00F20185 /* Assets.xcassets */; };
+		41022AFC26B3314400F20185 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41022AFB26B3314400F20185 /* Constants.swift */; };
+		41022AFD26B3314400F20185 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41022AFB26B3314400F20185 /* Constants.swift */; };
+		41022B0526B3612D00F20185 /* OPConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41022B0426B3612D00F20185 /* OPConfiguration.swift */; };
+		41022B0626B3612D00F20185 /* OPConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41022B0426B3612D00F20185 /* OPConfiguration.swift */; };
+		41022B0826B3627500F20185 /* ContentInteractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41022B0726B3627500F20185 /* ContentInteractor.swift */; };
+		41022B0926B3627500F20185 /* ContentInteractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41022B0726B3627500F20185 /* ContentInteractor.swift */; };
+		41022B0C26B364C900F20185 /* ErrorUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41022B0B26B364C900F20185 /* ErrorUtilities.swift */; };
+		41022B0D26B364C900F20185 /* ErrorUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41022B0B26B364C900F20185 /* ErrorUtilities.swift */; };
+		41022B0F26B3974A00F20185 /* ContentPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41022B0E26B3974A00F20185 /* ContentPresenter.swift */; };
+		41022B1026B3974A00F20185 /* ContentPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41022B0E26B3974A00F20185 /* ContentPresenter.swift */; };
+		41022B1226B39CC300F20185 /* ConfigurationUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41022B1126B39CC300F20185 /* ConfigurationUtilities.swift */; };
+		41022B1326B39CC300F20185 /* ConfigurationUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41022B1126B39CC300F20185 /* ConfigurationUtilities.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -49,6 +61,12 @@
 		41022AE026B32AAC00F20185 /* Tests macOS.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Tests macOS.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		41022AE426B32AAC00F20185 /* Tests_macOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tests_macOS.swift; sourceTree = "<group>"; };
 		41022AE626B32AAC00F20185 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		41022AFB26B3314400F20185 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		41022B0426B3612D00F20185 /* OPConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OPConfiguration.swift; sourceTree = "<group>"; };
+		41022B0726B3627500F20185 /* ContentInteractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentInteractor.swift; sourceTree = "<group>"; };
+		41022B0B26B364C900F20185 /* ErrorUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorUtilities.swift; sourceTree = "<group>"; };
+		41022B0E26B3974A00F20185 /* ContentPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentPresenter.swift; sourceTree = "<group>"; };
+		41022B1126B39CC300F20185 /* ConfigurationUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationUtilities.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -98,8 +116,13 @@
 		41022ABD26B32AAA00F20185 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				41022B0A26B364B000F20185 /* Utilities */,
+				41022B0326B3600300F20185 /* Models */,
 				41022ABE26B32AAA00F20185 /* GetTokens_SwiftUIApp.swift */,
 				41022ABF26B32AAA00F20185 /* ContentView.swift */,
+				41022B0726B3627500F20185 /* ContentInteractor.swift */,
+				41022B0E26B3974A00F20185 /* ContentPresenter.swift */,
+				41022AFB26B3314400F20185 /* Constants.swift */,
 				41022AC026B32AAC00F20185 /* Assets.xcassets */,
 			);
 			path = Shared;
@@ -149,6 +172,23 @@
 				41022AE626B32AAC00F20185 /* Info.plist */,
 			);
 			path = "Tests macOS";
+			sourceTree = "<group>";
+		};
+		41022B0326B3600300F20185 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				41022B0426B3612D00F20185 /* OPConfiguration.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		41022B0A26B364B000F20185 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				41022B0B26B364C900F20185 /* ErrorUtilities.swift */,
+				41022B1126B39CC300F20185 /* ConfigurationUtilities.swift */,
+			);
+			path = Utilities;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -308,8 +348,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				41022B0826B3627500F20185 /* ContentInteractor.swift in Sources */,
+				41022B0C26B364C900F20185 /* ErrorUtilities.swift in Sources */,
+				41022B0F26B3974A00F20185 /* ContentPresenter.swift in Sources */,
 				41022AE926B32AAC00F20185 /* ContentView.swift in Sources */,
 				41022AE726B32AAC00F20185 /* GetTokens_SwiftUIApp.swift in Sources */,
+				41022AFC26B3314400F20185 /* Constants.swift in Sources */,
+				41022B0526B3612D00F20185 /* OPConfiguration.swift in Sources */,
+				41022B1226B39CC300F20185 /* ConfigurationUtilities.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -317,8 +363,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				41022B0926B3627500F20185 /* ContentInteractor.swift in Sources */,
+				41022B0D26B364C900F20185 /* ErrorUtilities.swift in Sources */,
+				41022B1026B3974A00F20185 /* ContentPresenter.swift in Sources */,
 				41022AEA26B32AAC00F20185 /* ContentView.swift in Sources */,
 				41022AE826B32AAC00F20185 /* GetTokens_SwiftUIApp.swift in Sources */,
+				41022AFD26B3314400F20185 /* Constants.swift in Sources */,
+				41022B0626B3612D00F20185 /* OPConfiguration.swift in Sources */,
+				41022B1326B39CC300F20185 /* ConfigurationUtilities.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
