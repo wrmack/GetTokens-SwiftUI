@@ -11,7 +11,8 @@ import SwiftUI
 struct GetTokens_SwiftUIApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView(config: "",selectedFlavor: Flavor.chocolate)
+            ContentView(selectedProvider: Provider.none)
+                .environmentObject(AuthState())
         }
     }
 }

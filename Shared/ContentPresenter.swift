@@ -13,13 +13,13 @@ class ContentPresenter: ObservableObject {
     
     @Published var displayData = "" 
     
-    func presentData(data: Data) {
+    func presentData(data: Data, url: URL) {
         
         let jsonObject = try? JSONSerialization.jsonObject(with: data, options: [])
         let jsonData = try! JSONSerialization.data(withJSONObject: jsonObject!, options: .prettyPrinted)
         let prettyPrintedString = String(data: jsonData, encoding: String.Encoding(rawValue: String.Encoding.utf8.rawValue) )!
-        
-        displayData = prettyPrintedString
+        let path = url.absoluteString
+        displayData = "Response from:\n\(path)\n=================================================\n\n" + prettyPrintedString
         print("ContentPresenter displayData changed: \(prettyPrintedString)")
         
 //        let configuration = ConfigurationUtilities(JSONData: data!, error: error)
