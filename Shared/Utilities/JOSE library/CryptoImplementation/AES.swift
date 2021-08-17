@@ -5,7 +5,7 @@
 //  Created by Carol Capek on 04.01.18.
 //
 //  ---------------------------------------------------------------------------
-//  Copyright 2018 Airside Mobile Inc.
+//  Copyright 2019 Airside Mobile Inc.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -28,13 +28,18 @@ internal enum AESError: Error {
     case keyLengthNotSatisfied
     case encryptingFailed(description: String)
     case decryptingFailed(description: String)
+    case cannotPerformOperationOnEmptyDataBuffer
+    case invalidAlgorithm
 }
 
-fileprivate extension SymmetricKeyAlgorithm {
+fileprivate extension ContentEncryptionAlgorithm {
     var ccAlgorithm: CCAlgorithm {
         switch self {
         case .A256CBCHS512:
-            return CCAlgorithm(kCCAlgorithmAES128)
+            return CCAlgorithm(kCCAlgorithmAES)
+
+        case .A128CBCHS256:
+            return CCAlgorithm(kCCAlgorithmAES)
         }
     }
 
@@ -42,11 +47,29 @@ fileprivate extension SymmetricKeyAlgorithm {
         switch self {
         case .A256CBCHS512:
             return key.count == kCCKeySizeAES256
+
+        case .A128CBCHS256:
+            return key.count == kCCKeySizeAES128
         }
     }
 }
 
-internal struct AES {
+fileprivate extension KeyManagementAlgorithm {
+    func checkAESKeyLength(for key: Data) -> Bool? {
+        switch self {
+        case .A128KW:
+            return key.count == kCCKeySizeAES128
+        case .A192KW:
+            return key.count == kCCKeySizeAES192
+        case .A256KW:
+            return key.count == kCCKeySizeAES256
+        default:
+            return nil
+        }
+    }
+}
+
+enum AES {
     typealias KeyType = Data
 
     /// Encrypts a plain text using a given `AES` algorithm, the corresponding symmetric key and an initialization vector.
@@ -58,20 +81,34 @@ internal struct AES {
     ///   - initializationVector: The initial block.
     /// - Returns: The cipher text (encrypted plain text).
     /// - Throws: `AESError` if any error occurs during encryption.
-    static func encrypt(plaintext: Data, with encryptionKey: KeyType, using algorithm: SymmetricKeyAlgorithm, and initializationVector: Data) throws -> Data {
+    static func encrypt(
+        _ plaintext: Data,
+        with encryptionKey: KeyType,
+        using algorithm: ContentEncryptionAlgorithm,
+        and initializationVector: Data
+    ) throws -> Data {
         switch algorithm {
-        case .A256CBCHS512:
+        case .A256CBCHS512, .A128CBCHS256:
             guard algorithm.checkAESKeyLength(for: encryptionKey) else {
                 throw AESError.keyLengthNotSatisfied
             }
 
-            let encrypted = aes(operation: CCOperation(kCCEncrypt), data: plaintext, key: encryptionKey, algorithm: algorithm.ccAlgorithm, initializationVector: initializationVector, padding: CCOptions(kCCOptionPKCS7Padding))
+            let encrypted = ccAESCBCCrypt(
+                operation: CCOperation(kCCEncrypt),
+                data: plaintext, key: encryptionKey,
+                algorithm: algorithm.ccAlgorithm,
+                initializationVector: initializationVector,
+                padding: CCOptions(kCCOptionPKCS7Padding)
+            )
 
-            guard encrypted.status == UInt32(kCCSuccess) else {
+            guard
+                let ciphertext = encrypted.data,
+                encrypted.status == UInt32(kCCSuccess)
+            else {
                 throw AESError.encryptingFailed(description: "Encryption failed with status: \(encrypted.status).")
             }
 
-            return encrypted.data
+            return ciphertext
         }
     }
 
@@ -84,54 +121,233 @@ internal struct AES {
     ///   - initializationVector: The initial block.
     /// - Returns: The plain text (decrypted cipher text).
     /// - Throws: `AESError` if any error occurs during decryption.
-    static func decrypt(cipherText: Data, with decryptionKey: Data, using algorithm: SymmetricKeyAlgorithm, and initializationVector: Data) throws -> Data {
+    static func decrypt(
+        cipherText: Data,
+        with decryptionKey: Data,
+        using algorithm: ContentEncryptionAlgorithm,
+        and initializationVector: Data
+    ) throws -> Data {
         switch algorithm {
-        case .A256CBCHS512:
+        case .A256CBCHS512, .A128CBCHS256:
             guard algorithm.checkAESKeyLength(for: decryptionKey) else {
                 throw AESError.keyLengthNotSatisfied
             }
 
-            let decrypted = aes(operation: CCOperation(kCCDecrypt), data: cipherText, key: decryptionKey, algorithm: algorithm.ccAlgorithm, initializationVector: initializationVector, padding: CCOptions(kCCOptionPKCS7Padding))
+            let decrypted = ccAESCBCCrypt(
+                operation: CCOperation(kCCDecrypt),
+                data: cipherText, key: decryptionKey,
+                algorithm: algorithm.ccAlgorithm,
+                initializationVector: initializationVector,
+                padding: CCOptions(kCCOptionPKCS7Padding)
+            )
 
-            guard decrypted.status == UInt32(kCCSuccess) else {
-                throw AESError.decryptingFailed(description: "Decryption failed with CryptoStatus: \(decrypted.status).")
+            guard
+                let plaintext = decrypted.data,
+                decrypted.status == UInt32(kCCSuccess)
+            else {
+                throw AESError.decryptingFailed(description: "Decryption failed with status: \(decrypted.status).")
             }
 
-            return decrypted.data
+            return plaintext
         }
     }
 
-    static func aes(operation: CCOperation, data: Data, key: Data, algorithm: CCAlgorithm, initializationVector: Data, padding: CCOptions) -> (data: Data, status: UInt32) {
-        let dataLength = data.count
+    /// Encrypts the given raw key using AES key wrap.
+    /// - Parameters:
+    ///   - rawKey: The raw key to encrypt
+    ///   - keyEncryptionKey: The key used to encypt the raw key
+    ///   - algorithm: The algorithm to use for AES key wrap
+    static func wrap(rawKey: Data, keyEncryptionKey: Data, algorithm: KeyManagementAlgorithm) throws -> Data {
+        let keyWrapAlgorithms: [KeyManagementAlgorithm] = [.A128KW, .A192KW, .A256KW]
 
-        //AES's 128 block size is fix for every key length.
+        guard keyWrapAlgorithms.contains(algorithm) else {
+            throw AESError.invalidAlgorithm
+        }
+
+        guard algorithm.checkAESKeyLength(for: keyEncryptionKey) == true else {
+            throw AESError.keyLengthNotSatisfied
+        }
+
+        // See https://tools.ietf.org/html/rfc3394#section-2.2.3.1
+        // The default iv is defined to be the hexadecimal constant A6A6A6A6A6A6A6A6
+        let iv = Data(bytes: CCrfc3394_iv, count: CCrfc3394_ivLen)
+
+        let wrapped = ccAESKeyWrap(rawKey: rawKey, keyEncryptionKey: keyEncryptionKey, iv: iv)
+
+        guard let wrappedKey = wrapped.data, wrapped.status == kCCSuccess else {
+            throw AESError.encryptingFailed(description: "Key wrap failed with status: \(wrapped.status).")
+        }
+
+        return wrappedKey
+    }
+
+    /// Decrypts the given raw key using AES key wrap.
+    /// - Parameters:
+    ///   - rawKey: The raw key to decrypt
+    ///   - keyEncryptionKey: The key that was used to encrypt the raw key
+    ///   - algorithm: The algorithm to use for AES key wrap
+    static func unwrap(wrappedKey: Data, keyEncryptionKey: Data, algorithm: KeyManagementAlgorithm) throws -> Data {
+        let keyWrapAlgorithms: [KeyManagementAlgorithm] = [.A128KW, .A192KW, .A256KW]
+
+        guard keyWrapAlgorithms.contains(algorithm) else {
+            throw AESError.invalidAlgorithm
+        }
+
+        guard algorithm.checkAESKeyLength(for: keyEncryptionKey) == true else {
+            throw AESError.keyLengthNotSatisfied
+        }
+
+        // See https://tools.ietf.org/html/rfc3394#section-2.2.3.1
+        // The default iv is defined to be the hexadecimal constant A6A6A6A6A6A6A6A6
+        let iv = Data(bytes: CCrfc3394_iv, count: CCrfc3394_ivLen)
+
+        let unwrapped = ccAESKeyUnwrap(wrappedKey: wrappedKey, keyEncryptionKey: keyEncryptionKey, iv: iv)
+
+        guard let unwrappedKey = unwrapped.data, unwrapped.status == kCCSuccess else {
+            throw AESError.decryptingFailed(description: "Key unwrap failed with status: \(unwrapped.status).")
+        }
+
+        return unwrappedKey
+    }
+}
+
+extension AES {
+    // swiftlint:disable:next function_parameter_count
+    private static func ccAESCBCCrypt(
+        operation: CCOperation,
+        data: Data,
+        key: Data,
+        algorithm: CCAlgorithm,
+        initializationVector: Data,
+        padding: CCOptions
+    ) -> (data: Data?, status: Int32) {
+        let dataLength = data.count
+        let keyLength = key.count
+        let ivLength = initializationVector.count
+
+        guard dataLength > 0, keyLength > 0, ivLength > 0 else {
+            return (nil, CCCryptorStatus(kCCParamError))
+        }
+
+        // AES's 128 block size is fixed for every key length and guaranteed not to be 0.
         let cryptLength  = size_t(dataLength + kCCBlockSizeAES128)
         var cryptData = Data(count: cryptLength)
 
-        let keyLength = key.count
         var numBytesCrypted: size_t = 0
 
-        let cryptStatus = cryptData.withUnsafeMutableBytes {cryptBytes in
-            data.withUnsafeBytes {dataBytes in
-                initializationVector.withUnsafeBytes {ivBytes in
-                    key.withUnsafeBytes {keyBytes in
+        // Force unwrapping is ok, since buffers are guaranteed not to be empty.
+        // From the docs: If the baseAddress of this buffer is nil, the count is zero.
+        // swiftlint:disable force_unwrapping
+        let cryptStatus = cryptData.withUnsafeMutableBytes { cryptBytes in
+            data.withUnsafeBytes { dataBytes in
+                initializationVector.withUnsafeBytes { ivBytes in
+                    key.withUnsafeBytes { keyBytes -> Int32 in
                         CCCrypt(operation,
                                 algorithm,
                                 padding,
-                                keyBytes, keyLength,
-                                ivBytes,
-                                dataBytes, dataLength,
-                                cryptBytes, cryptLength,
+                                keyBytes.baseAddress!, keyLength,
+                                ivBytes.baseAddress!,
+                                dataBytes.baseAddress!, dataLength,
+                                cryptBytes.baseAddress!, cryptLength,
                                 &numBytesCrypted)
                     }
                 }
             }
         }
+        // swiftlint:enable force_unwrapping
 
-        if UInt32(cryptStatus) == UInt32(kCCSuccess) {
-            cryptData.removeSubrange(numBytesCrypted..<cryptLength)
+        guard cryptStatus == kCCSuccess else {
+            return (nil, cryptStatus)
         }
 
-        return (cryptData, UInt32(cryptStatus))
+        cryptData.removeSubrange(numBytesCrypted..<cryptLength)
+
+        return (cryptData, cryptStatus)
+    }
+}
+
+extension AES {
+    private static func ccAESKeyWrap(
+        rawKey: Data,
+        keyEncryptionKey: Data,
+        iv: Data
+    ) -> (data: Data?, status: Int32) {
+        let alg = CCWrappingAlgorithm(kCCWRAPAES)
+
+        var wrappedKeyLength: size_t = CCSymmetricWrappedSize(alg, rawKey.count)
+        var wrappedKey = Data(count: wrappedKeyLength)
+
+        let status = wrappedKey.withUnsafeMutableBytes { wrappedKeyBytes in
+            rawKey.withUnsafeBytes { rawKeyBytes in
+                iv.withUnsafeBytes { ivBytes in
+                    keyEncryptionKey.withUnsafeBytes { keyEncryptionKeyBytes -> Int32 in
+                        guard
+                            let wrappedKeyBytes = wrappedKeyBytes.bindMemory(to: UInt8.self).baseAddress,
+                            let rawKeyBytes = rawKeyBytes.bindMemory(to: UInt8.self).baseAddress,
+                            let ivBytes = ivBytes.bindMemory(to: UInt8.self).baseAddress,
+                            let keyEncryptionKeyBytes = keyEncryptionKeyBytes.bindMemory(to: UInt8.self).baseAddress
+                        else {
+                            return Int32(kCCMemoryFailure)
+                        }
+                        return CCSymmetricKeyWrap(
+                            alg,
+                            ivBytes, iv.count,
+                            keyEncryptionKeyBytes, keyEncryptionKey.count,
+                            rawKeyBytes, rawKey.count,
+                            wrappedKeyBytes, &wrappedKeyLength
+                        )
+                    }
+                }
+            }
+        }
+
+        guard status == kCCSuccess else {
+            return (nil, status)
+        }
+
+        wrappedKey.removeSubrange(wrappedKeyLength..<wrappedKey.count)
+        return (wrappedKey, status)
+    }
+
+    private static func ccAESKeyUnwrap(
+        wrappedKey: Data,
+        keyEncryptionKey: Data,
+        iv: Data
+    ) -> (data: Data?, status: Int32) {
+        let alg = CCWrappingAlgorithm(kCCWRAPAES)
+
+        var rawKeyLength: size_t = CCSymmetricUnwrappedSize(alg, wrappedKey.count)
+        var rawKey = Data(count: rawKeyLength)
+
+        let status = rawKey.withUnsafeMutableBytes { rawKeyBytes in
+            wrappedKey.withUnsafeBytes { wrappedKeyBytes in
+                iv.withUnsafeBytes { ivBytes in
+                    keyEncryptionKey.withUnsafeBytes { keyEncryptionKeyBytes -> Int32 in
+                        guard
+                            let rawKeyBytes = rawKeyBytes.bindMemory(to: UInt8.self).baseAddress,
+                            let wrappedKeyBytes = wrappedKeyBytes.bindMemory(to: UInt8.self).baseAddress,
+                            let ivBytes = ivBytes.bindMemory(to: UInt8.self).baseAddress,
+                            let keyEncryptionKeyBytes = keyEncryptionKeyBytes.bindMemory(to: UInt8.self).baseAddress
+                        else {
+                            return Int32(kCCMemoryFailure)
+                        }
+                        return CCSymmetricKeyUnwrap(
+                            alg,
+                            ivBytes, iv.count,
+                            keyEncryptionKeyBytes, keyEncryptionKey.count,
+                            wrappedKeyBytes, wrappedKey.count,
+                            rawKeyBytes, &rawKeyLength
+                        )
+                    }
+                }
+            }
+        }
+
+        guard status == kCCSuccess else {
+            return (nil, status)
+        }
+
+        rawKey.removeSubrange(rawKeyLength..<rawKey.count)
+        return (rawKey, status)
     }
 }

@@ -1,5 +1,5 @@
 //
-//  AuthorisationRequest.swift
+//  AuthorizationRequest.swift
 //  GetTokens-SwiftUI
 //
 //  Created by Warwick McNaughton on 31/07/21.
@@ -7,111 +7,105 @@
 
 import Foundation
 
-fileprivate let kResponseTypeKey = "response_type"
-fileprivate let kClientIDKey = "client_id"
-fileprivate let kClientSecretKey = "client_secret"
-fileprivate let kScopeKey = "scope"
-fileprivate let kRedirectURLKey = "redirect_uri"
-fileprivate let kStateKey = "state"
-fileprivate let kNonceKey = "nonce"
-fileprivate let kCodeVerifierKey = "code_verifier"
-fileprivate let kCodeChallengeKey = "code_challenge"
-fileprivate let kCodeChallengeMethodKey = "code_challenge_method"
-fileprivate let kAdditionalParametersKey = "additionalParameters"
-fileprivate let OIDOAuthorizationRequestCodeChallengeMethodS256 = "S256"
-fileprivate let kStateSizeBytes: Int = 32
-fileprivate let kCodeVerifierBytes: Int = 32
 
-
-
-
-class AuthorisationRequest: NSObject  {
+class AuthorizationRequest: NSObject  {
     
    
     private let OIDOAuthUnsupportedResponseTypeMessage = "The response_type \"%@\" isn't supported. AppAuth only supports the \"code\" or \"code id_token\" response_type."
     
-    
-    
     private(set) var configuration: OPConfiguration?
-    /*! @brief The expected response type.
-     @remarks response_type
-     @discussion Generally 'code' if pure OAuth, otherwise a space-delimited list of of response
-     types including 'code', 'token', and 'id_token' for OpenID Connect.
-     @see https://tools.ietf.org/html/rfc6749#section-3.1.1
-     @see http://openid.net/specs/openid-connect-core-1_0.html#rfc.section.3
-     */
+    
+    /// The expected response type.
+    ///
+    /// Generally 'code' if pure OAuth, otherwise a space-delimited list of of response
+    /// types including 'code', 'token', and 'id_token' for OpenID Connect.
+    ///
+    /// See [IETF]( https://tools.ietf.org/html/rfc6749#section-3.1.1), [OpenID](http://openid.net/specs/openid-connect-core-1_0.html#rfc.section.3)
+    /// - remark: `response_type`
     private(set) var responseType = ""
-    /*! @brief The client identifier.
-     @remarks client_id
-     @see https://tools.ietf.org/html/rfc6749#section-2.2
-     */
+    
+    /// The client identifier.
+    ///
+    /// See IETF: [rfc6749](https://tools.ietf.org/html/rfc6749#section-2.2)
+    /// - remark: `client_id`
     private(set) var clientID = ""
-    /*! @brief The client secret.
-     @remarks client_secret
-     @discussion The client secret is used to prove that identity of the client when exchaning an
-     authorization code for an access token.
-     The client secret is not passed in the authorizationRequestURL. It is only used when
-     exchanging the authorization code for an access token.
-     @see https://tools.ietf.org/html/rfc6749#section-2.3.1
-     */
+    
+    /// The client secret.
+    ///
+    ///  The client secret is used to prove that identity of the client when exchaning an
+    ///  authorization code for an access token.
+    ///
+    /// The client secret is not passed in the authorizationRequestURL. It is only used when
+    /// exchanging the authorization code for an access token.
+    ///
+    /// See IETF: [rfc6749](https://tools.ietf.org/html/rfc6749#section-2.3.1)
+    ///  - remark: `client_secret`
     private(set) var clientSecret: String?
-    /*! @brief The value of the scope parameter is expressed as a list of space-delimited,
-     case-sensitive strings.
-     @remarks scope
-     @see https://tools.ietf.org/html/rfc6749#section-3.3
-     */
+    
+    /// The value of the scope parameter is expressed as a list of space-delimited,
+    /// case-sensitive strings.
+    ///
+    /// See IETF: [rfc6749](https://tools.ietf.org/html/rfc6749#section-3.3)
+    ///- remark: `scope`
     private(set) var scope: String?
-    /*! @brief The client's redirect URI.
-     @remarks redirect_uri
-     @see https://tools.ietf.org/html/rfc6749#section-3.1.2
-     */
+    
+    /// The client's redirect URI.
+    ///
+    /// See IETF: [rfc6749](https://tools.ietf.org/html/rfc6749#section-3.1.2)
+    /// - remark: `redirect_uri`
     private(set) var redirectURL: URL?
     
-    //  The converted code is limited to 2 KB.
-    //  Upgrade your plan to remove this limitation.
-    //
-    /*! @brief An opaque value used by the client to maintain state between the request and callback.
-     @remarks state
-     @discussion If this value is not explicitly set, this library will automatically add state and
-     perform appropriate validation of the state in the authorization response. It is recommended
-     that the default implementation of this parameter be used wherever possible. Typically used
-     to prevent CSRF attacks, as recommended in RFC6819 Section 5.3.5.
-     @see https://tools.ietf.org/html/rfc6749#section-4.1.1
-     @see https://tools.ietf.org/html/rfc6819#section-5.3.5
-     */
+    /// An opaque value used by the client to maintain state between the request and callback.
+    ///
+    /// If this value is not explicitly set, this library will automatically add state and
+    /// perform appropriate validation of the state in the authorization response. It is recommended
+    /// that the default implementation of this parameter be used wherever possible. Typically used
+    /// to prevent CSRF attacks, as recommended in RFC6819 Section 5.3.5.
+    ///
+    /// See IETF: [rfc6749](https://tools.ietf.org/html/rfc6749#section-4.1.1),
+    /// [rfc6819](https://tools.ietf.org/html/rfc6819#section-5.3.5)
+    /// - remark: `state`
     private(set) var state: String?
-    /*! @brief String value used to associate a Client session with an ID Token, and to mitigate replay
-     attacks. The value is passed through unmodified from the Authentication Request to the ID
-     Token. Sufficient entropy MUST be present in the nonce values used to prevent attackers from
-     guessing values.
-     @remarks nonce
-     @discussion If this value is not explicitly set, this library will automatically add nonce and
-     perform appropriate validation of the nonce in the ID Token.
-     @see https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
-     */
+    
+    /// String value used to associate a Client session with an ID Token, and to mitigate replay
+    /// attacks. The value is passed through unmodified from the Authentication Request to the ID
+    /// Token. Sufficient entropy MUST be present in the nonce values used to prevent attackers from
+    /// guessing values.
+    ///
+    /// If this value is not explicitly set, this library will automatically add nonce and
+    /// perform appropriate validation of the nonce in the ID Token.
+    ///
+    /// See: [OpenID](https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest)
+    /// - remark: nonce
     private(set) var nonce: String?
-    /*! @brief The PKCE code verifier.
-     @remarks code_verifier
-     @discussion The code verifier itself is not included in the authorization request that is sent
-     on the wire, but needs to be in the token exchange request.
-     @c OIDAuthorizationResponse.tokenExchangeRequest will create a @c OIDTokenRequest that
-     includes this parameter automatically.
-     @see https://tools.ietf.org/html/rfc7636#section-4.1
-     */
+    
+    /// The PKCE code verifier.
+    ///
+    ///  The code verifier itself is not included in the authorization request that is sent
+    /// on the wire, but needs to be in the token exchange request.
+    /// `OIDAuthorizationResponse.tokenExchangeRequest` will create a `OIDTokenRequest` that
+    /// includes this parameter automatically.
+    ///
+    /// See IETF [rfc7636](https://tools.ietf.org/html/rfc7636#section-4.1)
+    /// - remark: `code_verifier`
     private(set) var codeVerifier: String?
-    /*! @brief The PKCE code challenge, derived from #codeVerifier.
-     @remarks code_challenge
-     @see https://tools.ietf.org/html/rfc7636#section-4.2
-     */
+    
+    /// The PKCE code challenge, derived from #codeVerifier.
+    ///
+    /// See IETF [rfc7636](https://tools.ietf.org/html/rfc7636#section-4.2)
+    /// - remark: `code_challenge`
     private(set) var codeChallenge: String?
-    /*! @brief The method used to compute the @c #codeChallenge
-     @remarks code_challenge_method
-     @see https://tools.ietf.org/html/rfc7636#section-4.3
-     */
+    
+    /// The method used to compute the @c #codeChallenge
+    ///
+    /// See IETF [rfc7636](https://tools.ietf.org/html/rfc7636#section-4.3)
+    /// - remark: `code_challenge_method`
     private(set) var codeChallengeMethod: String?
-    /*! @brief The client's additional authorization parameters.
-     @see https://tools.ietf.org/html/rfc6749#section-3.1
-     */
+    
+    /// The client's additional authorization parameters.
+    ///
+    /// See IETF [rfc6749](https://tools.ietf.org/html/rfc6749#section-3.1)
+    ///
 //    private(set) var additionalParameters: [String : AnyCodable]?
     
     
@@ -132,12 +126,12 @@ class AuthorisationRequest: NSObject  {
         self.scope = scope
         self.redirectURL = redirectURL
         self.responseType = responseType!
-        if !AuthorisationRequest.isSupportedResponseType(self.responseType) {
+        if !AuthorizationRequest.isSupportedResponseType(self.responseType) {
             assert(false, String(format: OIDOAuthUnsupportedResponseTypeMessage, self.responseType))
             return
         }
         self.state = state
-        self.nonce = nonce
+//        self.nonce = nonce
         self.codeVerifier = codeVerifier
         self.codeChallenge = codeChallenge
         self.codeChallengeMethod = codeChallengeMethod
@@ -146,19 +140,15 @@ class AuthorisationRequest: NSObject  {
     
     convenience init(configuration: OPConfiguration?, clientId clientID: String?, clientSecret: String?, scopes: [String]?, redirectURL: URL?, responseType: String?) {
         // generates PKCE code verifier and challenge
-        let codeVerifier = AuthorisationRequest.generateCodeVerifier()
-        let codeChallenge = AuthorisationRequest.codeChallengeS256(forVerifier: codeVerifier)
-        self.init(configuration: configuration, clientId: clientID, clientSecret: clientSecret, scope: ScopeUtilities.scopes(withArray: scopes), redirectURL: redirectURL, responseType: responseType, state: AuthorisationRequest.generateState(), nonce: AuthorisationRequest.generateState(), codeVerifier: codeVerifier, codeChallenge: codeChallenge, codeChallengeMethod: OIDOAuthorizationRequestCodeChallengeMethodS256)
+        let codeVerifier = AuthorizationRequest.generateCodeVerifier()
+        let codeChallenge = AuthorizationRequest.codeChallengeS256(forVerifier: codeVerifier)
+        self.init(configuration: configuration, clientId: clientID, clientSecret: clientSecret, scope: ScopeUtilities.scopes(withArray: scopes), redirectURL: redirectURL, responseType: responseType, state: AuthorizationRequest.generateState(), nonce: AuthorizationRequest.generateState(), codeVerifier: codeVerifier, codeChallenge: codeChallenge, codeChallengeMethod: OIDOAuthorizationRequestCodeChallengeMethodS256)
     }
     
     convenience init(configuration: OPConfiguration?, clientId clientID: String?, scopes: [String]?, redirectURL: URL?, responseType: String?) {
         self.init(configuration: configuration, clientId: clientID, clientSecret: nil, scopes: scopes, redirectURL: redirectURL, responseType: responseType)
     }
-    
-    
-    // MARK: - Codable
-    
-    
+
     
     func description() -> String? {
         return String(format: "<%@: %p, request: %@>", NSStringFromClass(type(of: self).self), self, authorizationRequestURL as! CVarArg)

@@ -13,17 +13,16 @@ private let kQueryStringParamAdditionalDisallowedCharacters = "=&+"
 
 
 class QueryUtilities: NSObject {
-    /*! @brief A dictionary of parameter names and values representing the contents of the query.
-     */
+    
+    ///  A dictionary of parameter names and values representing the contents of the query.
     var parameters: [String : [String]] = [:]
     
-    /*! @brief The parameter names in the query.
-     */
+    ///  The parameter names in the query.
     private(set) var parameterNames: [String] = []
-    /*! @brief The parameters represented as a dictionary.
-     @remarks All values are @c NSString except for parameters which contain multiple values, in
-     which case the value is an @c NSArray<NSString *> *.
-     */
+    
+    ///  The parameters represented as a dictionary.
+    ///  - remark: All values are `NSString` except for parameters which contain multiple values, in
+    /// which case the value is an `NSArray<NSString *>` .
     var dictionaryValue: [String : (NSObject & NSCopying)] = [:]
     
     
@@ -33,11 +32,13 @@ class QueryUtilities: NSObject {
         // If NSURLQueryItem is available, use it for deconstructing the new URL. (iOS 8+)
         
         var components = URLComponents(url: URL, resolvingAgainstBaseURL: false)
+        
         // As OAuth uses application/x-www-form-urlencoded encoding, interprets '+' as a space
         // in addition to regular percent decoding. https://url.spec.whatwg.org/#urlencoded-parsing
         let tmpComp = components?.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%20")
         components?.percentEncodedQuery = tmpComp
-        // NB. @c queryItems are already percent decoded
+        
+        // NB. queryItems are already percent decoded
         let queryItems = components?.queryItems
         for queryItem in queryItems!  {
             addParameter(queryItem.name, value: queryItem.value)
@@ -49,7 +50,7 @@ class QueryUtilities: NSObject {
     }
     
     func getDictionaryValue() -> [String : NSObject & NSCopying] {
-        // This method will flatten arrays in our @c _parameters' values if only one value exists.
+        // This method will flatten arrays in our _parameters' values if only one value exists.
         var values: [String : (NSObject & NSCopying)] = [:]
         for parameter in parameters.keys {
             let value = parameters[parameter]!
@@ -88,11 +89,10 @@ class QueryUtilities: NSObject {
 //        }
 //    }
     
-    /*! @brief Builds a query items array that can be set to @c NSURLComponents.queryItems
-     @discussion The parameter names and values are NOT URL encoded.
-     @return An array of unencoded @c NSURLQueryItem objects.
-     */
-    
+    /// Builds a query items array that can be set to @c NSURLComponents.queryItems
+    ///
+    /// The parameter names and values are NOT URL encoded.
+    /// - returns:  An array of unencoded `NSURLQueryItem` objects.
     func queryItems()->[URLQueryItem] {
         var queryParameters = [URLQueryItem]()
         for parameterName in parameters.keys {
@@ -126,11 +126,10 @@ class QueryUtilities: NSObject {
     }
     
     
-    /*! @brief Builds a query string that can be set to @c NSURLComponents.percentEncodedQuery
-     @discussion This string is percent encoded, and shouldn't be used with
-     @c NSURLComponents.query.
-     @return An percentage encoded query string.
-     */
+    /// Builds a query string that can be set to @c NSURLComponents.percentEncodedQuery
+    ///
+    /// This string is percent encoded, and shouldn't be used with `NSURLComponents.query`.
+    /// - returns: A percentage encoded query string.
     func percentEncodedQueryString() -> String {
         var parameterizedValues: [String] = []
         // Starts with the standard URL-allowed character set.

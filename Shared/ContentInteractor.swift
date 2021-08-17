@@ -10,10 +10,10 @@ import Combine
 import AuthenticationServices
 
 
-struct Config: Codable {
-    var issuer: String
-    var jwks_uri: String
-}
+//struct Config: Codable {
+//    var issuer: String
+//    var jwks_uri: String
+//}
 
 class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProviding {
     
@@ -25,15 +25,18 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
     private var cancellable: AnyCancellable?
 
     
-    // Fetch OIDC Provider configuration
+    // MARK: - Fetch provider configuration
+    
     func fetchConfiguration(providerPath: String, presenter: ContentPresenter, authState: AuthState) {
+        
+        presenter.presentTitle(title: "Fetching configuration...")
         
         // Create URL from input string
         guard let providerURL = URL(string: providerPath) else {
             print("Error creating URL for : \(providerPath)")
             return
         }
-        presenter.displayData = "Getting info ....."
+
         let discoveryURL = providerURL.appendingPathComponent(".well-known/openid-configuration")
         
         // Create url session publisher
@@ -61,9 +64,8 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                     }
                 },
                 receiveValue: { [self] data in
-                    print("Value: \(data)")
-                    updateAuthStateWithConfig(data: data, authState: authState)
-                    presenter.presentData(data: data, url: discoveryURL)
+                    authState.updateAuthStateWithConfig(JSONData: data)
+                    presenter.presentData(data: data, requestUrl: discoveryURL, flowStage: "discovery")
                     registerClient(presenter: presenter, authState: authState)
                 }
             )
@@ -71,24 +73,29 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
 
     }
     
-    // Register client
+    // MARK: - Register client
     
     func registerClient(presenter: ContentPresenter, authState: AuthState) {
+        
+        presenter.presentTitle(title: "Registering client...")
+        
         let configuration = authState.opConfig
         guard let redirectURI = URL(string: authState.kRedirectURI) else {
             print("Error creating URL for : \(authState.kRedirectURI)")
             return
         }
         
-        let request = RegistrationRequest(
-                configuration: configuration,
-                redirectURIs: [redirectURI],
-                responseTypes: ["code"],
-                grantTypes: ["authorization_code"],
-                subjectType: nil,
-                tokenEndpointAuthMethod: "client_secret_post",
-                additionalParameters: nil
-        )
+        var request = RegistrationRequest()
+        request.configuration = configuration
+        request.redirectURIs = [redirectURI]
+        request.responseTypes = ["code"]
+        request.grantTypes = ["authorization_code"]
+        request.subjectType = nil
+        request.tokenEndpointAuthenticationMethod = "client_secret_post"
+        request.initialAccessToken = nil
+        request.additionalParameters = nil
+        request.applicationType = kApplicationTypeNative
+        request.clientName = "Get tokens"
         
         let URLRequest = request.urlRequest()
         
@@ -128,18 +135,20 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                     }
                 },
                 receiveValue: { [self] data in
-                    print("Value: \(data)")
-                    updateAuthStateWithRegistration(request: request, data: data, authState: authState)
-                    presenter.presentData(data: data, url: URLRequest!.url!)
-                    authenticateWithProvider(presenter: presenter, authState: authState)
+                    authState.updateAuthStateWithRegistration(request: request, data: data)
+                    presenter.presentData(data: data, requestUrl: URLRequest!.url!, flowStage: "registration")
+                    fetchProviderAuthorizationCode(presenter: presenter, authState: authState)
                     
                 }
             )
     }
     
-    // Authentication request
+    // MARK: - Authorization
     
-    func authenticateWithProvider(presenter: ContentPresenter, authState: AuthState) {
+    /// 
+    func fetchProviderAuthorizationCode(presenter: ContentPresenter, authState: AuthState) {
+        
+        presenter.presentTitle(title: "Authorizing client...")
         
         guard let redirectURI = URL(string: authState.kRedirectURI) else { print("Error creating URL for : \(authState.kRedirectURI)"); return }
         let configuration = authState.opConfig
@@ -147,16 +156,17 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
         let clientID = registrationResponse!.clientID
         let clientSecret = registrationResponse!.clientSecret
         
-        let request = AuthorisationRequest(
+        let request = AuthorizationRequest(
             configuration: configuration,
             clientId: clientID,
             clientSecret: clientSecret,
-            scopes: [kScopeOpenID, kScopeProfile, kScopeWebID],
+            scopes: [kScopeOpenID, kScopeProfile, kScopeOfflineAccess],
             redirectURL: redirectURI,
             responseType: kResponseTypeCode
         )
         
-        let signInPromise = Future<URL, Error> { completion in
+        
+        cancellable = Future<URL, Error> { completion in
                     
             let authSession = ASWebAuthenticationSession(
                 url: request.authorizationRequestURL()!,
@@ -172,8 +182,8 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
             authSession.prefersEphemeralWebBrowserSession = true
             authSession.start()
         }
-                
-        signInPromise.sink(receiveCompletion: { completion in
+        .receive(on: DispatchQueue.main)
+        .sink(receiveCompletion: { completion in
             switch completion {
             case .failure(let error):
                 print("Received error: \(error)")
@@ -181,182 +191,164 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                 print("Success")
             }
         },
-        receiveValue: { url in
-//            self.processResponseURL(url: url)
-            print("Here \(url)")
+        receiveValue: { [self] url in
+            authState.updateAuthStateWithAuthentication(request: request, url: url)
+            presenter.presentDataFromURL(dataURL: url, requestUrl: request.authorizationRequestURL()!, flowStage: "authorization")
+            fetchTokensFromTokenEndpoint(presenter: presenter, authState: authState)
         })
-//        .store(in: &subscriptions)
-    }
-        
-    func updateAuthStateWithConfig(data: Data, authState: AuthState) {
-        authState.opConfig = OPConfiguration(JSONData: data)
-        print("Here")
     }
     
-    func updateAuthStateWithRegistration(request: RegistrationRequest, data: Data, authState: AuthState) {
-        var json:[String : Any]?
+    
+    // MARK: - Fetch tokens
+    
+    func fetchTokensFromTokenEndpoint(presenter: ContentPresenter, authState: AuthState)  {
+        
+        presenter.presentTitle(title: "Fetching tokens...")
+        
+        let authorizationRequest = authState.authorizationResponse?.request
+        let tokenExchangeRequest = TokenRequest(configuration: authorizationRequest?.configuration,
+            grantType: kGrantTypeAuthorizationCode,
+            authorizationCode: authState.authorizationResponse!.authorizationCode,
+            redirectURL: authorizationRequest!.redirectURL,
+            clientID: authorizationRequest!.clientID,
+            clientSecret: authorizationRequest!.clientSecret,
+            scope: nil,
+            refreshToken: nil,
+            codeVerifier: authorizationRequest!.codeVerifier,
+            nonce: authorizationRequest?.nonce
+//            additionalParameters: authorizationRequest!.additionalParameters
+        )
+        let URLRequest = tokenExchangeRequest.urlRequest()
+        print("URLRequest for tokens: \(URLRequest)")
+        print("URLRequest for tokens showing body: \(tokenExchangeRequest.description(request: URLRequest)!)")
+        
+        cancellable = URLSession.shared
+            .dataTaskPublisher(for: URLRequest)
+            .receive(on: DispatchQueue.main)
+            .tryMap() { element -> Data in
+                guard let httpResponse = element.response as? HTTPURLResponse,
+                    httpResponse.statusCode == 200 else {
+                        throw URLError(.badServerResponse)
+                    }
+                return element.data
+                }
+//            .decode(type: Config.self, decoder: JSONDecoder())
+            .sink(
+                receiveCompletion: { completion in
+                    switch completion {
+                    case .failure(let error):
+                        print("Error fetching tokens: \(error)")
+                    case .finished:
+                        print("Success fetching tokens")
+                    }
+                },
+                receiveValue: { [self] data in                    
+                    authState.updateAuthStateWithTokens(tokenExchangeRequest: tokenExchangeRequest, JSONData: data)
+                    presenter.presentData(data: data, requestUrl: URLRequest.url!, flowStage: "tokens")
+                    fetchUserInfo(presenter: presenter, authState: authState)
+                }
+            )
+        
+    }
+    
+    func fetchUserInfo(presenter: ContentPresenter, authState: AuthState) {
+        let userinfoEndpoint = authState.opConfig?.userInfoEndpoint
+        if userinfoEndpoint == nil {
+            print("Userinfo endpoint not declared in discovery document")
+            return
+        }
+        let currentAccessToken = authState.tokenResponse!.accessToken
+        print("Performing userinfo request")
+        let tokenManager = TokenManager(authState: authState)
+        tokenManager.performActionWithFreshTokens() { accessToken, idToken, error in
+
+            if error != nil {
+                print("Error fetching fresh tokens: \(error!.localizedDescription)")
+                return
+            }
+
+            // log whether a token refresh occurred
+            if currentAccessToken != accessToken {
+                print("Access token was refreshed automatically")
+            } else {
+                print("Access token was fresh and not updated \(accessToken!)")
+            }
+
+            // creates request to the userinfo endpoint, with access token in the Authorization header  // check 'Content-Type': 'application/json'
+            var request =  URLRequest(url: userinfoEndpoint!)
+            request.httpMethod = "GET"
+            request.addValue("DPoP \(accessToken!)", forHTTPHeaderField: "authorization")
+            request.addValue("\(self.dpopToken(authState: authState)!)", forHTTPHeaderField: "dpop")
+            request.addValue("application/x-www-form-urlencoded; charset=UTF-8", forHTTPHeaderField: "Content-Type")
+            
+            self.cancellable = URLSession.shared
+                .dataTaskPublisher(for:request)
+                .receive(on: DispatchQueue.main)
+                .tryMap() { element -> Data in
+                    guard let httpResponse = element.response as? HTTPURLResponse,
+                        httpResponse.statusCode == 200 else {
+                            throw URLError(.badServerResponse)
+                        }
+                    return element.data
+                    }
+    //            .decode(type: Config.self, decoder: JSONDecoder())
+                .sink(
+                    receiveCompletion: { completion in
+                        switch completion {
+                        case .failure(let error):
+                            print("Error fetching userinfo \(error)")
+                        case .finished:
+                            print("Success fetching userinfo")
+                        }
+                    },
+                    receiveValue: {  data in
+                        print("Data from userinfo: \(data)")
+                        presenter.presentData(data: data, requestUrl: request.url!, flowStage: "userinfo")
+
+                    }
+                )
+        }
+    }
+    
+    func dpopToken(authState: AuthState) -> String? {
+        let keys = authState.tokenResponse!.request!.dpopKeyPair
+        
+        // Form JWK
+        let jwkPublicKey = try! RSAPublicKey(publicKey: keys!.publicKey)
+        print("Public key plain text: \(jwkPublicKey.jsonString()!)")
+        
+        // Header
+        var header = JWSHeader(algorithm: .RS256)
+        header.typ = "dpop+jwt"
+        header.jwkTyped = jwkPublicKey
+        
+        // Payload
+        var randomIdentifier: Data?
         do {
-            json = try JSONSerialization.jsonObject(with: data, options: []) as? [String : Any]
+            randomIdentifier = try SecureRandom.generate(count: 12)
         }
         catch {
-            // A problem occurred deserializing the response/JSON.
-            let errorDescription = "JSON error parsing registration response: \(error.localizedDescription)"
-            let returnedError: NSError? = ErrorUtilities.error(code: ErrorCode.JSONDeserializationError, underlyingError: error as NSError, description: errorDescription)
-            DispatchQueue.main.async(execute: {
-                print("Registration error: \(returnedError!.localizedDescription)")
-//                self.setAuthState(nil)
-            })
-            return
+            print(error)
         }
-//        self.writeToTextView(status: nil, message: data)
-        let registrationResponse = RegistrationResponse(request: request, parameters: json!)
-        if registrationResponse == nil {
-            // A problem occurred constructing the registration response from the JSON.
-            let returnedError: NSError? = ErrorUtilities.error(code: ErrorCode.RegistrationResponseConstructionError, underlyingError: nil, description: "Registration response invalid.")
-            DispatchQueue.main.async(execute: {
-                print("Registration error: \(returnedError!.localizedDescription)")
-//                self.setAuthState(nil)
-            })
-            return
+        let tokenPayload = TokenPayload(
+            htu: authState.opConfig!.userInfoEndpoint!.absoluteString,
+            htm: "GET",
+            jti: randomIdentifier!.base64EncodedString(),
+            iat: Int(Date().timeIntervalSince1970)
+        )
+        let jsonPayload = try? JSONEncoder().encode(tokenPayload)
+        let payload = Payload(jsonPayload!)
+        
+        // Signer
+        let signer = Signer(signingAlgorithm: .RS256, key: keys!.privateKey)
+        var jws: JWS?
+        do {
+            jws = try JWS(header: header, payload: payload, signer: signer!)
+        } catch {
+            print("jws error \(error)")
         }
-        authState.registrationResponse = registrationResponse
+        let dpopToken = jws!.compactSerializedString
+        print("dpopToken: \(dpopToken)")
+        return dpopToken
     }
-        
 }
-        
-
-        
-//        print("Initiating authorization request with scope: \(request.scope ?? "DEFAULT_SCOPE")")
-//        writeToTextView(status: "Requesting authorization...\n\n", message: nil)
-        
-        // Get HandleAuthenticationServices to launch the ASWebauthenticationServices view controller
-        // If successful, the authorization tokens are returned in the callback.
-        // The authorization flow is stored in the app delegate.
-//        guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else { print("Error accessing AppDelegate"); return }
-//        let authSession = AuthenticationSession()
-//        appDelegate.currentAuthorizationFlow = authSession.fetchAuthState(authorizationRequest: request, presentingViewController: viewController) { authState, error in
-//
-//            if error != nil {
-//                self.writeToTextView(status: "Error", message: error?.localizedDescription)
-//            }
-//            self.writeToTextView(status: "Got authorization code and state code\n\nRequesting tokens...\n\n", message: nil)
-//            self.writeToTextView(status: "Got access token: \n", message: "\(authState!.lastTokenResponse!.accessToken!)\n")
-//            self.writeToTextView(status: "\nGot id token: \n", message: "\(authState!.lastTokenResponse!.idToken!)\n")
-//            self.writeToTextView(status: "\nGot refresh token:\n", message: "\(authState!.lastTokenResponse!.refreshToken!)")
-//            if let authState = authState {
-//                self.setAuthState(authState)
-//                print("Got authorization tokens. \nAccess token: \(authState.lastTokenResponse!.accessToken!) \nID token: \(authState.lastTokenResponse!.idToken!)")
-//            } else {
-//                print("Authorization error: \(error?.localizedDescription ?? "DEFAULT_ERROR")")
-//                self.setAuthState(nil)
-//            }
-//        }
-//
-//    }
-    
- 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-//        let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
-//        session.dataTask(with: URLRequest!, completionHandler: { data, response, error in
-//
-//            if error != nil {
-//                // A network error or server error occurred.
-//                var errorDescription: String? = nil
-//                if let anURL = URLRequest!.url {
-//                    errorDescription = "Connection error making registration request to '\(anURL)': \(error?.localizedDescription ?? "")."
-//                }
-//                let returnedError: NSError? = ErrorUtilities.error(code: ErrorCode.NetworkError, underlyingError: error as NSError?, description: errorDescription)
-//                DispatchQueue.main.async(execute: {
-//                    print("Registration error: \(returnedError?.localizedDescription ?? "DEFAULT_ERROR")")
-//                    self.setAuthState(nil)
-//                })
-//                return
-//            }
-//
-//
-//            let HTTPURLResponse = response as? HTTPURLResponse
-//            if HTTPURLResponse?.statusCode != 201 && HTTPURLResponse?.statusCode != 200 {
-//                // A server error occurred.
-//                let serverError = ErrorUtilities.HTTPError(HTTPResponse: HTTPURLResponse!, data: data)
-//                // HTTP 400 may indicate an OpenID Connect Dynamic Client Registration 1.0 Section 3.3 error
-//                // response, checks for that
-//                if HTTPURLResponse?.statusCode == 400 {
-//                    let json = ((try? JSONSerialization.jsonObject(with: data!, options: []) as? [String : (NSObject & NSCopying)]) as [String : (NSObject & NSCopying)]??)
-//                    // if the HTTP 400 response parses as JSON and has an 'error' key, it's an OAuth error
-//                    // these errors are special as they indicate a problem with the authorization grant
-//                    if json?![OIDOAuthErrorFieldError] != nil {
-//                        let oauthError = ErrorUtilities.OAuthError(OAuthErrorDomain: OIDOAuthRegistrationErrorDomain, OAuthResponse: json!, underlyingError: serverError)
-//                        DispatchQueue.main.async(execute: {
-//                            print("Registration error: \(oauthError.localizedDescription)")
-//                            self.setAuthState(nil)
-//                        })
-//                        return
-//                    }
-//                }
-//                // not an OAuth error, just a generic server error
-//                var errorDescription: String? = nil
-//                if let anURL = URLRequest!.url {
-//                    errorDescription = """
-//                    Non-200/201 HTTP response (\(Int(HTTPURLResponse?.statusCode ?? 0))) making registration request \
-//                    to '\(anURL)'.
-//                    """
-//                }
-//                let returnedError: NSError? = ErrorUtilities.error(code: ErrorCode.ServerError, underlyingError: serverError, description: errorDescription)
-//                DispatchQueue.main.async(execute: {
-//                    print("Registration error: \(returnedError!.localizedDescription)")
-//                    self.setAuthState(nil)
-//                })
-//                return
-//            }
-//            var json:[String : Any]?
-//            do {
-//                json = try JSONSerialization.jsonObject(with: data!, options: []) as? [String : Any]
-//            }
-//            catch {
-//                // A problem occurred deserializing the response/JSON.
-//                let errorDescription = "JSON error parsing registration response: \(error.localizedDescription)"
-//                let returnedError: NSError? = ErrorUtilities.error(code: ErrorCode.JSONDeserializationError, underlyingError: error as NSError, description: errorDescription)
-//                DispatchQueue.main.async(execute: {
-//                    print("Registration error: \(returnedError!.localizedDescription)")
-//                    self.setAuthState(nil)
-//                })
-//                return
-//            }
-//            self.writeToTextView(status: nil, message: data)
-//            let registrationResponse = RegistrationResponse(request: request, parameters: json!)
-//            if registrationResponse == nil {
-//                // A problem occurred constructing the registration response from the JSON.
-//                let returnedError: NSError? = ErrorUtilities.error(code: ErrorCode.RegistrationResponseConstructionError, underlyingError: nil, description: "Registration response invalid.")
-//                DispatchQueue.main.async(execute: {
-//                    print("Registration error: \(returnedError!.localizedDescription)")
-//                    self.setAuthState(nil)
-//                })
-//                return
-//            }
-//
-//            // Success
-//            self.writeToTextView(status: "------------------------\n\n", message: nil)
-//            print("Got registration response: \(registrationResponse.description())")
-//
-//            DispatchQueue.main.async(execute: {
-//                callback(configuration, registrationResponse)
-//                session.invalidateAndCancel()
-//            })
-//
-//        }).resume()
-        
- 
-
-
-        
-        

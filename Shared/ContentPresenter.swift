@@ -11,26 +11,63 @@ import Combine
 
 class ContentPresenter: ObservableObject {
     
-    @Published var displayData = "" 
+    @Published var displayTitle = ""
+    @Published var displayData = [RowData]()
     
-    func presentData(data: Data, url: URL) {
-        
+    func presentTitle(title: String) {
+        displayTitle = title
+    }
+    
+    func presentData(data: Data, requestUrl: URL, flowStage: String) {
+        var header = ""
+        switch flowStage {
+        case "discovery":
+            header = kDiscoveryHeader
+        case "registration":
+            header = kRegistrationHeader
+        case "authorization":
+            header = kAuthorizationHeader
+        case "tokens":
+            header = kTokenHeader
+        case "userinfo":
+            header = kUserInfoHeader 
+        default:
+            header = ""
+        }
         let jsonObject = try? JSONSerialization.jsonObject(with: data, options: [])
-        let jsonData = try! JSONSerialization.data(withJSONObject: jsonObject!, options: .prettyPrinted)
+        let jsonData = try! JSONSerialization.data(withJSONObject: jsonObject!, options: [.withoutEscapingSlashes, .prettyPrinted])
         let prettyPrintedString = String(data: jsonData, encoding: String.Encoding(rawValue: String.Encoding.utf8.rawValue) )!
-        let path = url.absoluteString
-        displayData = "Response from:\n\(path)\n=================================================\n\n" + prettyPrintedString
-        print("ContentPresenter displayData changed: \(prettyPrintedString)")
-        
-//        let configuration = ConfigurationUtilities(JSONData: data!, error: error)
-//        if error != nil {
-//            let errorDescription = "JSON error parsing document at \(discoveryURL): \(String(describing: error?.localizedDescription))"
-//            error = ErrorUtilities.error(code: ErrorCode.NetworkError, underlyingError: error, description: errorDescription)
-//            DispatchQueue.main.async {
-//                print("Error retrieving discovery document: \(error!.localizedDescription)")
-//            }
-//            return
-//        }
-//        print("Configuration: \(configuration)")
+        let newContent = "The request is to:\n\(requestUrl.absoluteString)\n\nThe response is:\n\n" + prettyPrintedString
+        let newRowData = RowData(header: header, content: newContent)
+        displayData.append(newRowData)
+        print("\n\(flowStage) request is to:\n\(requestUrl.absoluteString)")
+        print("\nResponse from \(flowStage):\n\(prettyPrintedString)")
+    }
+    
+    func presentDataFromURL(dataURL: URL, requestUrl: URL, flowStage: String) {
+        var header = ""
+        switch flowStage {
+        case "discovery":
+            header = kDiscoveryHeader
+        case "registration":
+            header = kRegistrationHeader
+        case "authorization":
+            header = kAuthorizationHeader
+        case "tokens":
+            header = kTokenHeader
+        default:
+            header = ""
+        }
+        var str = ""
+        let components = URLComponents(url: dataURL, resolvingAgainstBaseURL: true)
+        let queryItems = components?.queryItems
+        queryItems!.forEach({item in
+            str = str + item.name + ": " + item.value! + "\n"
+        })
+        let newContent = "The request is to:\n\(requestUrl.absoluteString)\n\nThe response is:\n\n"  + str
+        let newRowData = RowData(header: header, content: newContent)
+        displayData.append(newRowData)
+        print("\n\(flowStage) request is to:\n\(requestUrl.absoluteString)")
+        print("\nResponse from \(flowStage):\n\(str)")
     }
 }

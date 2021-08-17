@@ -13,6 +13,7 @@ let kScopeWebID = "webid"
 let kScopeEmail = "email"
 let kScopeAddress = "address"
 let kScopePhone = "phone"
+let kScopeOfflineAccess = "offline_access"
 
 
 

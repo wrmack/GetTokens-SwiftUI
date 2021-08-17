@@ -5,7 +5,7 @@
 //  Created by Jarrod Moldrich on 02.07.18.
 //
 //  ---------------------------------------------------------------------------
-//  Copyright 2018 Airside Mobile Inc.
+//  Copyright 2019 Airside Mobile Inc.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ extension Data: ExpressibleAsECPublicKeyComponents {
             throw JOSESwiftError.invalidCurvePointOctetLength
         }
 
-        return Data(bytes: uncompressedIndication + xBytes + yBytes)
+        return Data(uncompressedIndication + xBytes + yBytes)
     }
 
     public func ecPublicKeyComponents() throws -> ECPublicKeyComponents {
@@ -52,8 +52,8 @@ extension Data: ExpressibleAsECPublicKeyComponents {
 
         let xBytes = publicKeyBytes[0..<pointSize]
         let yBytes = publicKeyBytes[pointSize..<pointSize*2]
-        let xData = Data(bytes: xBytes)
-        let yData = Data(bytes: yBytes)
+        let xData = Data(xBytes)
+        let yData = Data(yBytes)
         return (curve.rawValue, xData, yData)
     }
 }

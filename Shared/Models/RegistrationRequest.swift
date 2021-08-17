@@ -7,93 +7,75 @@
 
 import Foundation
 
-fileprivate let kConfigurationKey = "configuration"
-fileprivate let kInitialAccessToken = "initial_access_token"
-fileprivate let kRedirectURIsKey = "redirect_uris"
-fileprivate let kResponseTypesKey = "response_types"
-fileprivate let kGrantTypesKey = "grant_types"
-fileprivate let kSubjectTypeKey = "subject_type"
-fileprivate let kAdditionalParametersKey = "additionalParameters"
-fileprivate let kApplicationTypeNative = "native"
-
-fileprivate let kTokenEndpointAuthenticationMethodParam = "token_endpoint_auth_method"
-fileprivate let kApplicationTypeParam = "application_type"
-fileprivate let kRedirectURIsParam = "redirect_uris"
-fileprivate let kResponseTypesParam = "response_types"
-fileprivate let kGrantTypesParam = "grant_types"
-fileprivate let kSubjectTypeParam = "subject_type"
 
 
-class RegistrationRequest: NSObject {
+
+struct RegistrationRequest {
     
     
-    /*! @brief The service's configuration.
-     @remarks This configuration specifies how to connect to a particular OAuth provider.
-     Configurations may be created manually, or via an OpenID Connect Discovery Document.
-     */
-    private(set) var configuration: OPConfiguration?
-    /*! @brief The initial access token to access the Client Registration Endpoint
-     (if required by the OpenID Provider).
-     @remarks OAuth 2.0 Access Token optionally issued by an Authorization Server granting
-     access to its Client Registration Endpoint. This token (if required) is
-     provisioned out of band.
-     @see Section 3 of OpenID Connect Dynamic Client Registration 1.0
-     https://openid.net/specs/openid-connect-registration-1_0.html#ClientRegistration
-     */
-    private(set) var initialAccessToken: String?
-    /*! @brief The application type to register, will always be 'native'.
-     @remarks application_type
-     @see https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
-     */
-    private(set) var applicationType = ""
-    /*! @brief The client's redirect URI's.
-     @remarks redirect_uris
-     @see https://tools.ietf.org/html/rfc6749#section-3.1.2
-     */
-    private(set) var redirectURIs: [URL] = []
-    /*! @brief The response types to register for usage by this client.
-     @remarks response_types
-     @see http://openid.net/specs/openid-connect-core-1_0.html#Authentication
-     */
-    private(set) var responseTypes: [String]?
-    /*! @brief The grant types to register for usage by this client.
-     @remarks grant_types
-     @see https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
-     */
-    private(set) var grantTypes: [String]?
-    /*! @brief The subject type to to request.
-     @remarks subject_type
-     @see http://openid.net/specs/openid-connect-core-1_0.html#SubjectIDTypes
-     */
-    private(set) var subjectType: String?
-    /*! @brief The client authentication method to use at the token endpoint.
-     @remarks token_endpoint_auth_method
-     @see http://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication
-     */
-    private(set) var tokenEndpointAuthenticationMethod: String?
-    /*! @brief The client's additional token request parameters.
-     */
-    private(set) var additionalParameters: [String : String]?
+    /// The service's configuration.
+    ///
+    /// This configuration specifies how to connect to a particular OAuth provider.
+    /// Configurations may be created manually, or via an OpenID Connect Discovery Document.
+    var configuration: OPConfiguration?
     
+    /// The initial access token to access the Client Registration Endpoint
+    /// (if required by the OpenID Provider).
+    ///
+    /// OAuth 2.0 Access Token optionally issued by an Authorization Server granting
+    /// access to its Client Registration Endpoint. This token (if required) is
+    /// provisioned out of band.
+    ///
+    /// Section 3 of [OpenID Connect Dynamic Client Registration 1.0](https://openid.net/specs/openid-connect-registration-1_0.html#ClientRegistration)
+    var initialAccessToken: String?
     
-    convenience init(configuration: OPConfiguration?, redirectURIs: [URL]?, responseTypes: [String]?, grantTypes: [String]?, subjectType: String?, tokenEndpointAuthMethod tokenEndpointAuthenticationMethod: String?, additionalParameters: [String : String]?) {
-        self.init(configuration: configuration, redirectURIs: redirectURIs, responseTypes: responseTypes, grantTypes: grantTypes, subjectType: subjectType, tokenEndpointAuthMethod: tokenEndpointAuthenticationMethod, initialAccessToken: nil, additionalParameters: additionalParameters)
-    }
+    /// The application type to register, will always be 'native'.
+    ///
+    /// Reference:
+    /// [Client metadata](https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata)
+    ///  - remark: `application_type`
+    var applicationType = ""
     
+    /// The client's redirect URI's.
+    ///
+    /// Reference:
+    /// [IETF](https://tools.ietf.org/html/rfc6749#section-3.1.2)
+    /// - remark: `redirect_uris`
+    var redirectURIs: [URL] = []
     
-    init(configuration: OPConfiguration?, redirectURIs: [URL]?, responseTypes: [String]?, grantTypes: [String]?, subjectType: String?, tokenEndpointAuthMethod tokenEndpointAuthenticationMethod: String?, initialAccessToken: String?, additionalParameters: [String : String]?) {
-        super.init()
-        
-        self.configuration = configuration
-        self.initialAccessToken = initialAccessToken
-        self.redirectURIs = redirectURIs!
-        self.responseTypes = responseTypes
-        self.grantTypes = grantTypes
-        self.subjectType = subjectType
-        self.tokenEndpointAuthenticationMethod = tokenEndpointAuthenticationMethod
-        self.additionalParameters = additionalParameters
-        applicationType = kApplicationTypeNative
-    }
+    /// The response types to register for usage by this client.
+    ///
+    ///  Reference:
+    /// [OpenID](http://openid.net/specs/openid-connect-core-1_0.html#Authentication)
+    /// - remark: `response_types`
+    var responseTypes: [String]?
+    
+    /// The grant types to register for usage by this client.
+    ///
+    ///  Reference:
+    /// [OpenID](https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata)
+    /// - remark: `grant_types`
+    var grantTypes: [String]?
+    
+    /// The subject type to to request.
+    ///
+    ///  Reference:
+    /// [OpenID](http://openid.net/specs/openid-connect-core-1_0.html#SubjectIDTypes)
+    /// - remark: `subject_type`
+    var subjectType: String?
+    
+    /// The client authentication method to use at the token endpoint.
+    ///
+    ///  Reference:
+    /// [OpenID](http://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication)
+    /// - remark: `token_endpoint_auth_method`
+    var tokenEndpointAuthenticationMethod: String?
+    
+    /// The client's additional token request parameters.
+    ///
+    var additionalParameters: [String : String]?
+    
+    var clientName: String?
     
      
     func urlRequest() -> URLRequest? {
@@ -149,7 +131,9 @@ class RegistrationRequest: NSObject {
         if tokenEndpointAuthenticationMethod != nil {
             dict[kTokenEndpointAuthenticationMethodParam] = tokenEndpointAuthenticationMethod
         }
-        
+        if clientName != nil {
+            dict[kClientNameParam] = clientName
+        }
         let json: Data? = try? JSONSerialization.data(withJSONObject: dict, options: [])
         return json
     }

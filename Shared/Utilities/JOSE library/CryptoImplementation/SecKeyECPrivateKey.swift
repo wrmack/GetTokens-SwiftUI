@@ -5,7 +5,7 @@
 //  Created by Jarrod Moldrich on 10.01.2019.
 //
 //  ---------------------------------------------------------------------------
-//  Copyright 2018 Airside Mobile Inc.
+//  Copyright 2019 Airside Mobile Inc.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -48,6 +48,7 @@ extension SecKey: ExpressibleAsECPrivateKeyComponents {
 
         var error: Unmanaged<CFError>?
         guard let keyReference = SecKeyCreateWithData(keyData as CFData, attributes as CFDictionary, &error) else {
+            // swiftlint:disable:next force_unwrapping
             throw error!.takeRetainedValue() as Error
         }
 
@@ -71,6 +72,7 @@ extension SecKey: ExpressibleAsECPrivateKeyComponents {
 
         var error: Unmanaged<CFError>?
         guard let keyData = SecKeyCopyExternalRepresentation(self, &error) else {
+            // swiftlint:disable:next force_unwrapping
             throw error!.takeRetainedValue() as Error
         }
 

@@ -5,7 +5,7 @@
 //  Created by Carol Capek on 06.02.18.
 //
 //  ---------------------------------------------------------------------------
-//  Copyright 2018 Airside Mobile Inc.
+//  Copyright 2019 Airside Mobile Inc.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -39,27 +39,50 @@ fileprivate extension SignatureAlgorithm {
         switch self {
         case .RS256:
             return .rsaSignatureMessagePKCS1v15SHA256
+        case .RS384:
+            return .rsaSignatureMessagePKCS1v15SHA384
         case .RS512:
             return .rsaSignatureMessagePKCS1v15SHA512
+        case .PS256:
+            if #available(iOS 11.0, *) {
+                return .rsaSignatureMessagePSSSHA256
+            } else {
+                return nil
+            }
+
+        case .PS384:
+            if #available(iOS 11.0, *) {
+                return .rsaSignatureMessagePSSSHA384
+            } else {
+                return nil
+            }
+
+        case .PS512:
+            if #available(iOS 11.0, *) {
+                return .rsaSignatureMessagePSSSHA512
+            } else {
+                return nil
+            }
         default:
             return nil
         }
     }
 }
 
-internal extension AsymmetricKeyAlgorithm {
-    /// Publically accessible mapping of AsymmetricKeyAlgorithm to Security Framework SecKeyAlgorithm
+internal extension KeyManagementAlgorithm {
+    /// Mapping of `AsymmetricKeyAlgorithm` to Security Framework's `SecKeyAlgorithm`.
     var secKeyAlgorithm: SecKeyAlgorithm? {
         switch self {
         case .RSA1_5:
             return .rsaEncryptionPKCS1
+        case .RSAOAEP:
+            return .rsaEncryptionOAEPSHA1
         case .RSAOAEP256:
             return .rsaEncryptionOAEPSHA256
-        case .direct:
+        default:
             return nil
         }
     }
-
 
     /// This method returns the maximum message length allowed for an `AsymmetricKeyAlgorithm`.
     /// - Parameter publicKey: The publicKey used with the algorithm.
@@ -67,51 +90,69 @@ internal extension AsymmetricKeyAlgorithm {
     ///
     /// - RSA1_5: For detailed information about the allowed plain text length for RSAES-PKCS1-v1_5,
     /// please refer to [RFC-3447, Section 7.2](https://tools.ietf.org/html/rfc3447#section-7.2).
-    /// - RSAOAEP256: For detailed information about the allowed plain text length for RSA-OAEP,
+    /// - RSAOAEP: For detailed information about the allowed plain text length for RSAES-OAEP,
     /// please refer to [RFC-3447, Section 7.1](https://tools.ietf.org/html/rfc3447#section-7.1).
-    func maxMessageLength(for publicKey: SecKey) -> Int {
+    /// - RSAOAEP256: For detailed information about the allowed plain text length for RSAES-OAEP-256,
+    /// please refer to [RFC-3447, Section 7.1](https://tools.ietf.org/html/rfc3447#section-7.1).
+    func maxMessageLength(for publicKey: SecKey) -> Int? {
         let k = SecKeyGetBlockSize(publicKey)
         switch self {
         case .RSA1_5:
             return (k - 11)
+        case .RSAOAEP:
+            // The maximum plaintext length is based on
+            // the hash length of SHA-1 (https://tools.ietf.org/html/rfc3174#section-1).
+            let hLen = 160 / 8
+            return k - 2 * hLen - 2
         case .RSAOAEP256:
-            // The maximum plaintext length is based on the hash length of SHA-256.
+            // The maximum plaintext length is based on
+            // the hash length of SHA-256.
             let hLen = 256 / 8
             return (k - 2 * hLen - 2)
-        case .direct: return 0
+        default: return nil
         }
     }
 }
 
-fileprivate extension AsymmetricKeyAlgorithm {
+fileprivate extension KeyManagementAlgorithm {
     /// Checks if the plain text length does not exceed the maximum
     /// for the chosen algorithm and the corresponding public key.
-    func isPlainTextLengthSatisfied(_ plainText: Data, for publicKey: SecKey) -> Bool {
+    /// This length checking is just for usability reasons.
+    /// Proper length checking is done in the implementation of iOS'
+    /// `SecKeyCreateEncryptedData` and `SecKeyCreateDecryptedData`.
+    func isPlainTextLengthSatisfied(_ plainText: Data, for publicKey: SecKey) -> Bool? {
         let mLen = plainText.count
 
         switch self {
-        case .RSA1_5, .RSAOAEP256:
-            return mLen <= self.maxMessageLength(for: publicKey)
-        case .direct:
-            return false
+        case .RSA1_5, .RSAOAEP, .RSAOAEP256:
+            guard let maxMessageLength = maxMessageLength(for: publicKey) else { return nil }
+            return mLen <= maxMessageLength
+        default:
+            return nil
         }
     }
 
-    func isCipherTextLenghtSatisfied(_ cipherText: Data, for privateKey: SecKey) -> Bool {
+    /// Checks if the ciphertext length does not exceed the maximum
+    /// for the chosen algorithm and the corresponding private key.
+    /// This length checking is just for usability reasons.
+    /// Proper length checking is done in the implementation of iOS'
+    /// `SecKeyCreateEncryptedData` and `SecKeyCreateDecryptedData`.
+    func isCipherTextLenghtSatisfied(_ cipherText: Data, for privateKey: SecKey) -> Bool? {
         switch self {
         case .RSA1_5:
             // For detailed information about the allowed cipher length for RSAES-PKCS1-v1_5,
             // please refer to the RFC(https://tools.ietf.org/html/rfc3447#section-7.2.2).
             return cipherText.count == SecKeyGetBlockSize(privateKey)
-        case .RSAOAEP256:
-            // For detailed information about the allowed cipher length for RSAOAEP,
-            // please refer to the RFC(https://tools.ietf.org/html/rfc3447#section-7.1.2
-            // https://tools.ietf.org/html/rfc3174#section-1,
-            // and https://www.rfc-editor.org/errata_search.php?rfc=3447)
-            // C: ciphertext to be decrypted, an octet string of length k, where k >= 2hLen + 2
+        case .RSAOAEP, .RSAOAEP256:
+            // For detailed information about the allowed cipher length for RSAES-OAEP and RSAES-OAEP-256,
+            // please refer to RFC-3447 (https://tools.ietf.org/html/rfc3447#section-7.1.2,
+            // https://www.rfc-editor.org/errata_search.php?rfc=3447):
+            // The ciphertext to be decrypted is an octet string of length k,
+            // where k is the length in octets of the RSA modulus,
+            // and k >= 2hLen + 2
             return cipherText.count == SecKeyGetBlockSize(privateKey)
-        case .direct:
-            return false
+        default:
+            return nil
         }
     }
 }
@@ -188,7 +229,7 @@ internal struct RSA {
     ///   - algorithm: The algorithm used to encrypt the plain text.
     /// - Returns: The cipher text (encrypted plain text).
     /// - Throws: `EncryptionError` if any errors occur while encrypting the plain text.
-    static func encrypt(_ plaintext: Data, with publicKey: KeyType, and algorithm: AsymmetricKeyAlgorithm) throws -> Data {
+    static func encrypt(_ plaintext: Data, with publicKey: KeyType, and algorithm: KeyManagementAlgorithm) throws -> Data {
         // Check if `AsymmetricKeyAlgorithm` supports a `SecKeyAlgorithm` and
         // if the algorithm is supported to encrypt with a given public key.
         guard
@@ -200,7 +241,7 @@ internal struct RSA {
 
         // Check if the plain text length does not exceed the maximum.
         // e.g. for RSA1_5 the plaintext must be 11 bytes smaller than the public key's modulus.
-        guard algorithm.isPlainTextLengthSatisfied(plaintext, for: publicKey) else {
+        guard algorithm.isPlainTextLengthSatisfied(plaintext, for: publicKey) == true else {
             throw RSAError.plainTextLengthNotSatisfied
         }
 
@@ -225,7 +266,7 @@ internal struct RSA {
     ///   - algorithm: The algorithm used to decrypt the cipher text.
     /// - Returns: The plain text.
     /// - Throws: `EncryptionError` if any errors occur while decrypting the cipher text.
-    static func decrypt(_ ciphertext: Data, with privateKey: KeyType, and algorithm: AsymmetricKeyAlgorithm) throws -> Data {
+    static func decrypt(_ ciphertext: Data, with privateKey: KeyType, and algorithm: KeyManagementAlgorithm) throws -> Data {
         // Check if `AsymmetricKeyAlgorithm` supports a `SecKeyAlgorithm` and
         // if the algorithm is supported to decrypt with a given private key.
         guard
@@ -237,7 +278,8 @@ internal struct RSA {
 
         // Check if the cipher text length does not exceed the maximum.
         // e.g. for RSA1_5 the cipher text has the same length as the private key's modulus.
-        guard algorithm.isCipherTextLenghtSatisfied(ciphertext, for: privateKey) else {
+        guard algorithm.isCipherTextLenghtSatisfied(ciphertext, for: privateKey) == true
+        else {
             throw RSAError.cipherTextLenghtNotSatisfied
         }
 
