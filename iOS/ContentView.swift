@@ -32,7 +32,6 @@ struct ContentView: View {
     @State var selectedProvider: Provider
     @State var selectedProviderStr = ""
 
-
     
     var body: some View {
         

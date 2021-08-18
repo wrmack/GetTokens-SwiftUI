@@ -304,7 +304,6 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                     receiveValue: {  data in
                         print("Data from userinfo: \(data)")
                         presenter.presentData(data: data, requestUrl: request.url!, flowStage: "userinfo")
-
                     }
                 )
         }

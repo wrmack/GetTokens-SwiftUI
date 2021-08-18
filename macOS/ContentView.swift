@@ -17,8 +17,13 @@ struct ContentView: View {
     @StateObject var presenter = ContentPresenter()
     @State var selectedProvider: Provider
     @State var selectedProviderStr = ""
+    
+    
     var body: some View {
-        Print("ContentView body called")
+        
+        // For debugging
+//        Print("ContentView body called")
+        
         VStack(alignment: .center) {
             Spacer().fixedSize().frame(height: 50)
 
@@ -46,21 +51,50 @@ struct ContentView: View {
                 VStack{
                     Text(presenter.displayTitle)
                         .font(.system(size: 16))
-                    ScrollView([.vertical]) {
-                        Text(presenter.displayData)
-                            .font(.system(size: 10))
+                    ScrollView {
+                      ForEach(presenter.displayData, id: \.self) { content in
+                         DisplayRowContent(rowContent: content)
+                        
+//                            .padding(EdgeInsets(top: 0, leading: 0, bottom: 5, trailing: 0))
+                      }
+
                     }
+                    .background(Color.white)
+   
                 }
                 .padding()
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .background(Color.white)
                 .foregroundColor(Color.black)
+                
                 Spacer().fixedSize().frame(width: 20)
             }
             Spacer().fixedSize().frame(height: 50)
         }
         .background(BACKGROUND_MAIN)
         .edgesIgnoringSafeArea([.all])
+        
+    }
+    
+    struct DisplayRowContent: View {
+        var rowContent: RowData
+        var body: some View {
+            VStack{
+                Divider()
+                    .frame(height: 4)
+                    .background(Color(white: 0.4, opacity: 0.8))
+                Text(rowContent.header)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .font(.system(size: 12, weight: .semibold))
+                Divider()
+                    .frame(height: 2)
+                    .background(Color(white: 0.4, opacity: 0.8))
+                Text(rowContent.content)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .font(.system(size: 12, weight: .regular))
+            }
+            .background(Color.white)
+        }
     }
     
     func fetchConfig(selectedProvider: Provider) {
@@ -89,10 +123,34 @@ extension View {
    }
 }
 
+// Create a ContentPresenter with data just for preview purposes
+
+class PreviewContentPresenter: ContentPresenter {
+    var presenter: ContentPresenter // This is what we need to pass to ContentView
+    
+    override init() {
+        self.presenter = ContentPresenter()
+        presenter.displayTitle = "Title"
+        presenter.displayData = [RowData(
+            header: kDiscoveryHeader,
+            content:"""
+            {
+                "grant_types" : ["authorization_code"],
+                "application_type" : "native",
+                "token_endpoint_auth_method" : "client_secret_post",
+                "response_types" : ["code"],
+                "client_name" : "Get tokens",
+                "redirect_uris" : ["com.wm.get-tokens:/mypath"]
+            }
+            """
+        )]
+    }
+}
+
 struct ContentView_Previews: PreviewProvider {
+    @StateObject static var newPresenter = PreviewContentPresenter()
+    
     static var previews: some View {
-        Group {
-            ContentView(selectedProvider: Provider.none)
-        }
+        ContentView(presenter: newPresenter.presenter, selectedProvider: Provider.solidcommunity_net)
     }
 }
