@@ -8,7 +8,18 @@
 import Foundation
 import Combine
 
-
+/// `ContentPresenter` is responsible for formatting data it receives from `ContentInteractor`
+/// so that it is ready for presentation by `ContentView`.
+///
+/// `ContentView` is the main app UI. It works with `ContentInteractor` and `ContentPresenter`.
+///
+/// `ContentInteractor` is responsible for interacting with the data model and the network.
+///
+/// `ContentPresenter` is responsible for formatting data it receives from `ContentInteractor`
+/// so that it is ready for presentation by `ContentView`. It is initialised in `ContentView` as a `@StateObject`
+/// to ensure there is only one instance and it notifies new content through a publisher.
+///
+/// This pattern is based on the VIP (View-Interactor-Presenter) and VMVM (View-Model-ViewModel) patterns.
 class ContentPresenter: ObservableObject {
     
     @Published var displayTitle = ""
@@ -21,15 +32,15 @@ class ContentPresenter: ObservableObject {
     func presentData(data: Data, requestUrl: URL, flowStage: String) {
         var header = ""
         switch flowStage {
-        case "discovery":
+        case "Discovery":
             header = kDiscoveryHeader
-        case "registration":
+        case "Registration":
             header = kRegistrationHeader
-        case "authorization":
+        case "Authorization":
             header = kAuthorizationHeader
-        case "tokens":
+        case "Tokens":
             header = kTokenHeader
-        case "userinfo":
+        case "Userinfo":
             header = kUserInfoHeader 
         default:
             header = ""
@@ -47,13 +58,13 @@ class ContentPresenter: ObservableObject {
     func presentDataFromURL(dataURL: URL, requestUrl: URL, flowStage: String) {
         var header = ""
         switch flowStage {
-        case "discovery":
+        case "Discovery":
             header = kDiscoveryHeader
-        case "registration":
+        case "Registration":
             header = kRegistrationHeader
-        case "authorization":
+        case "Authorization":
             header = kAuthorizationHeader
-        case "tokens":
+        case "Tokens":
             header = kTokenHeader
         default:
             header = ""

@@ -8,7 +8,7 @@
 import SwiftUI
 
 
-/// The main app view.  Responsible for displaying the UI.
+/// The iOS main app view.  Responsible for displaying the UI.
 ///
 /// `ContentView` works with `ContentInteractor` and `ContentPresenter`.
 ///
@@ -18,7 +18,7 @@ import SwiftUI
 /// so that it is ready for presentation by `ContentView`. It is initialised as a `@StateObject`
 /// to ensure there is only one instance and it notifies new content through a publisher.
 ///
-/// This pattern is based on VIP (View-Interactor-Presenter) and VMVM (View-Model-ViewModel) patterns.
+/// This pattern is based on the VIP (View-Interactor-Presenter) and VMVM (View-Model-ViewModel) patterns.
 struct ContentView: View {
     var solidCommunity = Solid_community()
     var inruptCom = Inrupt_com()
@@ -31,69 +31,96 @@ struct ContentView: View {
     @StateObject var presenter = ContentPresenter()
     @State var selectedProvider: Provider
     @State var selectedProviderStr = ""
+    @State var showInfo = false
 
     
     var body: some View {
         
         // For debugging
 //        Print("ContentView body called")
-
-        VStack(alignment: .center) {
-            if verticalSizeClass == .regular {
-                Spacer().fixedSize().frame(height: 50)
-            } else {
-                Spacer().fixedSize().frame(height: 20)
-            }
-            // Select provider
-            HStack {
-                Picker("Select", selection: $selectedProvider) {
-                    Text(solidCommunity.pickerText).tag(Provider.solidcommunity_net)
-                    Text(inruptCom.pickerText).tag(Provider.inrupt_com)
-                    Text(inruptNet.pickerText).tag(Provider.inrupt_net)
+        ZStack {
+            VStack(alignment: .center) {
+                if verticalSizeClass == .regular {
+                    Spacer().fixedSize().frame(height: 50)
+                } else {
+                    Spacer().fixedSize().frame(height: 20)
                 }
-                .pickerStyle(MenuPickerStyle())
-                .onChange(of: selectedProvider, perform: { value in
-                    fetchConfig(selectedProvider: value)
-                })
-                Text("your provider")
-                if verticalSizeClass != .regular {
-                    Spacer().fixedSize().frame(width: 20)
-                    Text(selectedProviderStr)
-                        .foregroundColor(.white)
-                }
-            }
-            if verticalSizeClass == .regular {
-                Spacer().fixedSize().frame(height: 20)
-                Text(selectedProviderStr)
-                Spacer().fixedSize().frame(height: 50)
-            }
-
-            // Display provider responses
-            HStack(alignment:.top) {
-                Spacer().fixedSize().frame(width: 20)
-                VStack{
-                    Text(presenter.displayTitle)
-                        .font(.system(size: 16))
-                    List {
-
-                      ForEach(presenter.displayData, id: \.self) { content in
-                         DisplayRowContent(rowContent: content)
-                            .listRowInsets(EdgeInsets(top: 0, leading: 5, bottom: 5, trailing: 5))
-                      }
+                // Select provider
+                HStack {
+                    Picker("Select", selection: $selectedProvider) {
+                        Text(solidCommunity.pickerText).tag(Provider.solidcommunity_net)
+                        Text(inruptCom.pickerText).tag(Provider.inrupt_com)
+                        Text(inruptNet.pickerText).tag(Provider.inrupt_net)
                     }
-                    .background(Color.white)
-                    .listStyle(PlainListStyle())
+                    .pickerStyle(MenuPickerStyle())
+                    .onChange(of: selectedProvider, perform: { value in
+                        fetchConfig(selectedProvider: value)
+                    })
+                    Text("your provider")
+                    if verticalSizeClass != .regular {
+                        Spacer().fixedSize().frame(width: 20)
+                        Text(selectedProviderStr)
+                            .foregroundColor(.white)
+                    }
+                    Image(systemName: "info.circle")
+                        .onTapGesture {
+                            showInfo = showInfo ? false : true
+                        }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .background(Color.white)
-                .foregroundColor(Color.black)
-                Spacer().fixedSize().frame(width: 20)
-            }
+                if verticalSizeClass == .regular {
+                    Spacer().fixedSize().frame(height: 20)
+                    Text(selectedProviderStr)
+                    Spacer().fixedSize().frame(height: 50)
+                }
 
-            Spacer().fixedSize().frame(height: 50)
+                // Display provider responses
+                HStack(alignment:.top) {
+                    Spacer().fixedSize().frame(width: 20)
+                    VStack{
+                        Text(presenter.displayTitle)
+                            .font(.system(size: 16))
+                        List {
+
+                          ForEach(presenter.displayData, id: \.self) { content in
+                             DisplayRowContent(rowContent: content)
+                                .listRowInsets(EdgeInsets(top: 0, leading: 5, bottom: 5, trailing: 5))
+                          }
+                        }
+                        .background(Color.white)
+                        .listStyle(PlainListStyle())
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .background(Color.white)
+                    .foregroundColor(Color.black)
+                    Spacer().fixedSize().frame(width: 20)
+                }
+
+                Spacer().fixedSize().frame(height: 50)
+            }
+            .background(BACKGROUND_MAIN)
+            .edgesIgnoringSafeArea([.all])
+            VStack {
+                if showInfo {
+                    Spacer().fixedSize().frame(height:60)
+                    HStack {
+                        Spacer()
+                        Text(
+                            """
+                            The authorization stage requires you to log in. In order to view the full flow you need to have an account with the selected provider.  If you do not have an account you will still be able to view the discovery and registration stages.
+                            """
+                        )
+                        .font(Font.system(.callout))
+                        .multilineTextAlignment(.leading)
+                        .padding()
+                        .background(Color(white: 0.95))
+                        .border(Color.gray)
+                        .cornerRadius(10.0)
+                        Spacer()
+                    }
+                    Spacer()
+                }
+            }
         }
-        .background(BACKGROUND_MAIN)
-        .edgesIgnoringSafeArea([.all])
     }
     
     struct DisplayRowContent: View {
@@ -130,14 +157,17 @@ struct ContentView: View {
             providerPath = solidCommunity.path
         }
         selectedProviderStr = providerPath
-        interactor.fetchConfiguration(providerPath: providerPath, presenter: presenter, authState: authState)
+        interactor.discoverConfiguration(providerPath: providerPath, presenter: presenter, authState: authState)
     }
 
 }
 
 // MARK: - Debugging
 
+
 extension View {
+    /// Prints to console.
+    /// Use in SwiftUI views instead of `print()`.
    func Print(_ vars: Any...) -> some View {
       for v in vars { print(v) }
       return EmptyView()
@@ -175,7 +205,7 @@ struct ContentView_Previews: PreviewProvider {
     @StateObject static var newPresenter = PreviewContentPresenter()
     
     static var previews: some View {
-        ContentView(presenter: newPresenter.presenter, selectedProvider: Provider.solidcommunity_net)
+        ContentView(presenter: newPresenter.presenter, selectedProvider: Provider.solidcommunity_net, showInfo: true)
     }
 
 }

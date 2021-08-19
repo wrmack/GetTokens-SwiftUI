@@ -7,6 +7,17 @@
 
 import SwiftUI
 
+/// The macOS main app view.  Responsible for displaying the UI.
+///
+/// `ContentView` works with `ContentInteractor` and `ContentPresenter`.
+///
+/// `ContentInteractor` is responsible for interacting with the data model and the network.
+///
+/// `ContentPresenter` is responsible for formatting data it receives from `ContentInteractor`
+/// so that it is ready for presentation by `ContentView`. It is initialised as a `@StateObject`
+/// to ensure there is only one instance and it notifies new content through a publisher.
+///
+/// This pattern is based on the VIP (View-Interactor-Presenter) and VMVM (View-Model-ViewModel) patterns.
 struct ContentView: View {
     var solidCommunity = Solid_community()
     var inruptCom = Inrupt_com()
@@ -17,63 +28,93 @@ struct ContentView: View {
     @StateObject var presenter = ContentPresenter()
     @State var selectedProvider: Provider
     @State var selectedProviderStr = ""
+    @State var showInfo = false
     
     
     var body: some View {
         
         // For debugging
 //        Print("ContentView body called")
-        
-        VStack(alignment: .center) {
-            Spacer().fixedSize().frame(height: 50)
+        ZStack {
+            VStack(alignment: .center) {
+                Spacer().fixedSize().frame(height: 50)
 
-            // Select provider
-            HStack {
-                Spacer()
-                Picker("Select your provider", selection: $selectedProvider) {
-                    Text(solidCommunity.pickerText).tag(Provider.solidcommunity_net)
-                    Text(inruptCom.pickerText).tag(Provider.inrupt_com)
-                    Text(inruptNet.pickerText).tag(Provider.inrupt_net)
-                }
-                .pickerStyle(MenuPickerStyle())
-                .onChange(of: selectedProvider, perform: { value in
-                    fetchConfig(selectedProvider: value)
-                })
-                .frame(width: 400, alignment: .center)
-                Spacer()
-            }
-
-            Spacer().fixedSize().frame(height: 30)
-
-            // Display provider responses
-            HStack(alignment:.top) {
-                Spacer().fixedSize().frame(width: 20)
-                VStack{
-                    Text(presenter.displayTitle)
-                        .font(.system(size: 16))
-                    ScrollView {
-                      ForEach(presenter.displayData, id: \.self) { content in
-                         DisplayRowContent(rowContent: content)
-                        
-//                            .padding(EdgeInsets(top: 0, leading: 0, bottom: 5, trailing: 0))
-                      }
-
+                // Select provider
+                HStack {
+                    Spacer()
+                    Picker("Select your provider", selection: $selectedProvider) {
+                        Text(solidCommunity.pickerText).tag(Provider.solidcommunity_net)
+                        Text(inruptCom.pickerText).tag(Provider.inrupt_com)
+                        Text(inruptNet.pickerText).tag(Provider.inrupt_net)
                     }
-                    .background(Color.white)
-   
+                    .pickerStyle(MenuPickerStyle())
+                    .onChange(of: selectedProvider, perform: { value in
+                        fetchConfig(selectedProvider: value)
+                    })
+                    .frame(width: 400, alignment: .center)
+                    
+                    Image(systemName: "info.circle")
+                        .onTapGesture {
+                            showInfo = showInfo ? false : true
+                        }
+                    Spacer()
                 }
-                .padding()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .background(Color.white)
-                .foregroundColor(Color.black)
-                
-                Spacer().fixedSize().frame(width: 20)
+
+                Spacer().fixedSize().frame(height: 30)
+
+                // Display provider responses
+                HStack(alignment:.top) {
+                    Spacer().fixedSize().frame(width: 20)
+                    VStack{
+                        Text(presenter.displayTitle)
+                            .font(.system(size: 16))
+                        ScrollView {
+                          ForEach(presenter.displayData, id: \.self) { content in
+                             DisplayRowContent(rowContent: content)
+                            
+    //                            .padding(EdgeInsets(top: 0, leading: 0, bottom: 5, trailing: 0))
+                          }
+
+                        }
+                        .background(Color.white)
+       
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .background(Color.white)
+                    .foregroundColor(Color.black)
+                    
+                    Spacer().fixedSize().frame(width: 20)
+                }
+                Spacer().fixedSize().frame(height: 50)
             }
-            Spacer().fixedSize().frame(height: 50)
+            .background(BACKGROUND_MAIN)
+            .edgesIgnoringSafeArea([.all])
+            
+            VStack {
+                if showInfo {
+                    Spacer().fixedSize().frame(height:60)
+                    HStack {
+                        Spacer()
+                        Text(
+                            """
+                            The authorization stage requires you to log in. In order to view the full flow you need to have an account with the selected provider.  If you do not have an account you will still be able to view the discovery and registration stages.
+                            """
+                        )
+                        .font(Font.system(.callout))
+                        .multilineTextAlignment(.leading)
+                        .padding()
+                        .background(Color(white: 0.95))
+                        .foregroundColor(.black)
+                        .cornerRadius(10.0)
+
+                        Spacer()
+                    }
+                    .frame(width: 300)
+                    Spacer()
+                }
+            }
         }
-        .background(BACKGROUND_MAIN)
-        .edgesIgnoringSafeArea([.all])
-        
     }
     
     struct DisplayRowContent: View {
@@ -111,7 +152,7 @@ struct ContentView: View {
             providerPath = solidCommunity.path
         }
         selectedProviderStr = providerPath
-        interactor.fetchConfiguration(providerPath: providerPath, presenter: presenter, authState: authState)
+        interactor.discoverConfiguration(providerPath: providerPath, presenter: presenter, authState: authState)
     }
 }
 
@@ -151,6 +192,6 @@ struct ContentView_Previews: PreviewProvider {
     @StateObject static var newPresenter = PreviewContentPresenter()
     
     static var previews: some View {
-        ContentView(presenter: newPresenter.presenter, selectedProvider: Provider.solidcommunity_net)
+        ContentView(presenter: newPresenter.presenter, selectedProvider: Provider.solidcommunity_net, showInfo: true)
     }
 }

@@ -15,6 +15,21 @@ import AuthenticationServices
 //    var jwks_uri: String
 //}
 
+
+
+/// `ContentInteractor` is responsible for interacting with the data model and the network.
+///
+/// `ContentView` is the main app UI. It works with `ContentInteractor` and `ContentPresenter`.
+///
+/// `ContentInteractor` is responsible for interacting with the data model and the network.
+///
+/// `ContentPresenter` is responsible for formatting data it receives from `ContentInteractor`
+/// so that it is ready for presentation by `ContentView`. It is initialised as a `@StateObject`
+/// to ensure there is only one instance and it notifies new content through a publisher.
+///
+/// This pattern is based on the VIP (View-Interactor-Presenter) and VMVM (View-Model-ViewModel) patterns.
+///
+/// `ContentInteractor` uses the ASWebAuthenticationSession API for logging into a Solid OP in order to receive an access token.
 class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProviding {
     
     // Function required by ASWebAuthenticationPresentationContextProviding protocol
@@ -25,23 +40,34 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
     private var cancellable: AnyCancellable?
 
     
-    // MARK: - Fetch provider configuration
+    // MARK: - Discover provider configuration
     
-    func fetchConfiguration(providerPath: String, presenter: ContentPresenter, authState: AuthState) {
+    /// Discovers the provider's OIDC configuration.
+    /// - Parameters:
+    ///     - providerPath: The path to the OIDC Provider eg https://solidcommunity.net
+    ///     - presenter: The `ContentPresenter` to send new data to for presenting to `ContentView`
+    ///     - authState: The `AuthState` object which holds data we want to track
+    /// - Note: From [OpenID Connect Discovery 1.0, part 4](https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig):
+    ///
+    /// An OpenID Provider Configuration Document MUST be queried using an HTTP GET request.
+    ///
+    /// A successful response MUST use the 200 OK HTTP status code and return a JSON object using the application/json content type that contains a set of Claims.
+    func discoverConfiguration(providerPath: String, presenter: ContentPresenter, authState: AuthState) {
         
         presenter.presentTitle(title: "Fetching configuration...")
         
-        // Create URL from input string
+        // Create base URL from input string
         guard let providerURL = URL(string: providerPath) else {
             print("Error creating URL for : \(providerPath)")
             return
         }
 
+        // Add path to configuration end-point
         let discoveryURL = providerURL.appendingPathComponent(".well-known/openid-configuration")
         
         // Create url session publisher
         // Publisher returns a tuple comprising data, response
-        // tryMap() checks the response component for correct status code and returns the data component
+        // tryMap() checks the response component for status code 200 and returns the data component
         // sink() receives only the data
         cancellable = URLSession.shared
             .dataTaskPublisher(for: discoveryURL)
@@ -53,19 +79,21 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                     }
                 return element.data
                 }
-//            .decode(type: Config.self, decoder: JSONDecoder())
             .sink(
                 receiveCompletion: { completion in
                     switch completion {
                     case .failure(let error):
                         print(error)
                     case .finished:
-                        print("Success")
+                        print("Successfully discovered configuration")
                     }
                 },
                 receiveValue: { [self] data in
+                    // Update state with configuration data
                     authState.updateAuthStateWithConfig(JSONData: data)
-                    presenter.presentData(data: data, requestUrl: discoveryURL, flowStage: "discovery")
+                    // Send configuration data to presenter
+                    presenter.presentData(data: data, requestUrl: discoveryURL, flowStage: "Discovery")
+                    // Move to next stage
                     registerClient(presenter: presenter, authState: authState)
                 }
             )
@@ -75,6 +103,33 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
     
     // MARK: - Register client
     
+    /// Registers the client (Get tokens) with the authorization server using dynamic registration.
+    /// - Parameters:
+    ///     - presenter: The `ContentPresenter` to send new data to for presenting to `ContentView`
+    ///     - authState: The `AuthState` object which holds data we want to track
+    /// - Note: From [OpenID Connect Dynamic Client Registration 1.0](https://openid.net/specs/openid-connect-registration-1_0.html):
+    ///
+    /// To register a new Client at the Authorization Server, the Client sends an HTTP POST message to the Client Registration Endpoint with any
+    /// Client Metadata parameters that the Client chooses to specify for itself during the registration. The Authorization Server assigns this Client a
+    /// unique Client Identifier, optionally assigns a Client Secret, and associates the Metadata given in the request with the issued Client Identifier.
+    /// The Authorization Server MAY provision default values for any items omitted in the Client Metadata.
+    ///
+    /// The Authorization Server MAY reject or replace any of the Client's requested field values and substitute them with suitable values. If this
+    /// happens, the Authorization Server MUST include these fields in the response to the Client. An Authorization Server MAY ignore values
+    /// provided by the client, and MUST ignore any fields sent by the Client that it does not understand.
+    ///
+    ///A successful **response** SHOULD use the HTTP 201 Created status code and return a JSON document [RFC4627] using the application/json
+    ///content type with the following fields and the Client Metadata parameters as top-level members of the root JSON object:
+    ///
+    /// - `client_id` REQUIRED. Unique Client Identifier. It MUST NOT be currently valid for any other registered Client.
+    /// - `client_secret` OPTIONAL. Client Secret. The same Client Secret value MUST NOT be assigned to multiple Clients.
+    /// - `registration_access_token` OPTIONAL. Registration Access Token that can be used at the Client Configuration Endpoint to perform subsequent
+    /// operations upon the Client registration.
+    /// - `registration_client_uri` OPTIONAL. Location of the Client Configuration Endpoint where the Registration Access Token can be used to
+    /// perform subsequent operations upon the resulting Client registration. Implementations MUST either return both a Client Configuration Endpoint and
+    /// a Registration Access Token or neither of them.
+    /// - `client_id_issued_at` OPTIONAL. Time at which the Client Identifier was issued.
+    /// `- client_secret_expires_at` REQUIRED if `client_secret` is issued. Time at which the client_secret will expire or 0 if it will not expire.
     func registerClient(presenter: ContentPresenter, authState: AuthState) {
         
         presenter.presentTitle(title: "Registering client...")
@@ -107,7 +162,6 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                 """)
             DispatchQueue.main.async(execute: {
                 print("Registration error: \(returnedError?.localizedDescription ?? "DEFAULT_ERROR")")
-//                self.setAuthState(nil)
             })
             return
         }
@@ -124,7 +178,6 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                 print("Response status code: \(httpResponse.statusCode)")
                 return element.data
                 }
-//            .decode(type: Config.self, decoder: JSONDecoder())
             .sink(
                 receiveCompletion: { completion in
                     switch completion {
@@ -135,15 +188,18 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                     }
                 },
                 receiveValue: { [self] data in
+                    // Update state with registration data
                     authState.updateAuthStateWithRegistration(request: request, data: data)
-                    presenter.presentData(data: data, requestUrl: URLRequest!.url!, flowStage: "registration")
+                    // Send registration data to presenter
+                    presenter.presentData(data: data, requestUrl: URLRequest!.url!, flowStage: "Registration")
+                    // Move to next stage
                     fetchProviderAuthorizationCode(presenter: presenter, authState: authState)
                     
                 }
             )
     }
     
-    // MARK: - Authorization
+    // MARK: - Authorization and receipt of access token
     
     /// 
     func fetchProviderAuthorizationCode(presenter: ContentPresenter, authState: AuthState) {
@@ -193,7 +249,7 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
         },
         receiveValue: { [self] url in
             authState.updateAuthStateWithAuthentication(request: request, url: url)
-            presenter.presentDataFromURL(dataURL: url, requestUrl: request.authorizationRequestURL()!, flowStage: "authorization")
+            presenter.presentDataFromURL(dataURL: url, requestUrl: request.authorizationRequestURL()!, flowStage: "Authorization")
             fetchTokensFromTokenEndpoint(presenter: presenter, authState: authState)
         })
     }
@@ -244,12 +300,14 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                 },
                 receiveValue: { [self] data in                    
                     authState.updateAuthStateWithTokens(tokenExchangeRequest: tokenExchangeRequest, JSONData: data)
-                    presenter.presentData(data: data, requestUrl: URLRequest.url!, flowStage: "tokens")
+                    presenter.presentData(data: data, requestUrl: URLRequest.url!, flowStage: "Tokens")
                     fetchUserInfo(presenter: presenter, authState: authState)
                 }
             )
         
     }
+    
+    // MARK: - Get userinfo 
     
     func fetchUserInfo(presenter: ContentPresenter, authState: AuthState) {
         let userinfoEndpoint = authState.opConfig?.userInfoEndpoint
@@ -291,7 +349,6 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                         }
                     return element.data
                     }
-    //            .decode(type: Config.self, decoder: JSONDecoder())
                 .sink(
                     receiveCompletion: { completion in
                         switch completion {
@@ -303,7 +360,7 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                     },
                     receiveValue: {  data in
                         print("Data from userinfo: \(data)")
-                        presenter.presentData(data: data, requestUrl: request.url!, flowStage: "userinfo")
+                        presenter.presentData(data: data, requestUrl: request.url!, flowStage: "Userinfo")
                     }
                 )
         }

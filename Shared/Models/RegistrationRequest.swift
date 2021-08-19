@@ -71,8 +71,7 @@ struct RegistrationRequest {
     /// - remark: `token_endpoint_auth_method`
     var tokenEndpointAuthenticationMethod: String?
     
-    /// The client's additional token request parameters.
-    ///
+    /// The client's additional request parameters.
     var additionalParameters: [String : String]?
     
     var clientName: String?
