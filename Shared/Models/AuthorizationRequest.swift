@@ -90,13 +90,13 @@ class AuthorizationRequest: NSObject  {
     /// - remark: `code_verifier`
     private(set) var codeVerifier: String?
     
-    /// The PKCE code challenge, derived from #codeVerifier.
+    /// The PKCE code challenge, derived from `codeVerifier`.
     ///
     /// See IETF [rfc7636](https://tools.ietf.org/html/rfc7636#section-4.2)
     /// - remark: `code_challenge`
     private(set) var codeChallenge: String?
     
-    /// The method used to compute the @c #codeChallenge
+    /// The method used to compute the `codeChallenge`
     ///
     /// See IETF [rfc7636](https://tools.ietf.org/html/rfc7636#section-4.3)
     /// - remark: `code_challenge_method`

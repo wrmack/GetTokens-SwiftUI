@@ -31,11 +31,13 @@
       "size" : "40x40"
     },
     {
+      "filename" : "appIcon120x120.png",
       "idiom" : "iphone",
       "scale" : "2x",
       "size" : "60x60"
     },
     {
+      "filename" : "appIcon180x180.png",
       "idiom" : "iphone",
       "scale" : "3x",
       "size" : "60x60"
@@ -116,26 +118,31 @@
       "size" : "128x128"
     },
     {
+      "filename" : "appIcon256x256-1.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "128x128"
     },
     {
+      "filename" : "appIcon256x256.png",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "256x256"
     },
     {
+      "filename" : "appIcon512x512-1.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "256x256"
     },
     {
+      "filename" : "appIcon512x512.png",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "512x512"
     },
     {
+      "filename" : "appIcon1024x1024.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "512x512"

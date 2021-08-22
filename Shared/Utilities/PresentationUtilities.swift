@@ -21,15 +21,7 @@ to get information for subsequent requests. The response is JSON data.
 let kRegistrationHeader = """
 Stage 2: Dynamic registration \n
 The client app ("Get tokens") is not already registered with the OpenID Provider and so has to register. \
-We use OpenID's dynamic registration protocol. A POST request is made using JSON data:
-{
-  "grant_types" : ["authorization_code"],
-  "application_type" : "native",
-  "token_endpoint_auth_method" : "client_secret_post",
-  "response_types" : ["code"],
-  "client_name" : "Get tokens",
-  "redirect_uris" : ["com.wm.get-tokens:/mypath"]
-}
+We use OpenID's dynamic registration protocol. A POST request is made using JSON data.
 
 The response provides us a client id and a client secret by the OpenID Provider.
 """
@@ -37,27 +29,16 @@ The response provides us a client id and a client secret by the OpenID Provider.
 let kAuthorizationHeader = """
 Stage 3: Get authorization code \n
 A GET request with query.
-eg: https://solidcommunity.net/authorize?
-     client_id=*********...&
-     state=*********...&
-     nonce=*********...&
-     response_type=code&
-     redirect_uri=com.wm.get-tokens:/mypath&
-     code_challenge=********...&
-     scope=openid profile offline_access&
-     code_challenge_method=S256
 The OpenID Provider provides a login page. After \
 successful login, the provider redirects to the redirect url \
-with a query string appended to the url containing:
-code : *********&
-state : *********
+with a query string appended to the url containing an authorization code.
 
-The app will use the code to request tokens.
+The app will use the authorization code to request tokens.
 """
 
 let kTokenHeader = """
 Stage 4: Get tokens \n
-The app makes POST request.
+The app makes a POST request using the access code.
 The OpenID Provider returns:
   token_type
   access_token

@@ -166,7 +166,7 @@ class TokenRequest: NSObject {
         }
 
         body.addParameter(kClientIDKey, value: clientID)
-        body.addParameter(kClientSecretKey, value: clientSecret)
+//        body.addParameter(kClientSecretKey, value: clientSecret)
     
         // Add any additional parameters the client has specified.
 //        query.addParameters(additionalParameters)

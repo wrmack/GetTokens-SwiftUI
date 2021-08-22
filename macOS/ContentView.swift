@@ -4,8 +4,9 @@
 //
 //  Created by Warwick McNaughton on 7/08/21.
 //
-
 import SwiftUI
+
+
 
 /// The macOS main app view.  Responsible for displaying the UI.
 ///
@@ -19,9 +20,11 @@ import SwiftUI
 ///
 /// This pattern is based on the VIP (View-Interactor-Presenter) and VMVM (View-Model-ViewModel) patterns.
 struct ContentView: View {
-    var solidCommunity = Solid_community()
+    var solidCommunity = Solidcommunity_net()
     var inruptCom = Inrupt_com()
     var inruptNet = Inrupt_net()
+    var solidwebOrg = Solidweb_org()
+    var trinPodUs = Trinpod_us()
     var interactor = ContentInteractor()
 
     @EnvironmentObject var authState: AuthState
@@ -37,15 +40,23 @@ struct ContentView: View {
 //        Print("ContentView body called")
         ZStack {
             VStack(alignment: .center) {
-                Spacer().fixedSize().frame(height: 50)
+                Spacer().fixedSize().frame(height: 30)
 
                 // Select provider
                 HStack {
+                    Image("gt-icon")
+                        .resizable()
+                        .antialiased(true)
+                        .frame(width:50,height:50)
+                        .padding(.all, 20)
+
                     Spacer()
                     Picker("Select your provider", selection: $selectedProvider) {
                         Text(solidCommunity.pickerText).tag(Provider.solidcommunity_net)
                         Text(inruptCom.pickerText).tag(Provider.inrupt_com)
                         Text(inruptNet.pickerText).tag(Provider.inrupt_net)
+                        Text(solidwebOrg.pickerText).tag(Provider.solidweb_org)
+                        Text(trinPodUs.pickerText).tag(Provider.trinpod_us)
                     }
                     .pickerStyle(MenuPickerStyle())
                     .onChange(of: selectedProvider, perform: { value in
@@ -61,7 +72,25 @@ struct ContentView: View {
                 }
 
                 Spacer().fixedSize().frame(height: 30)
-
+                
+                // The Copy button
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        let pasteBoard = NSPasteboard.general
+                        pasteBoard.clearContents()
+                        var stringObj = NSString()
+                        presenter.displayData.forEach({ rowdata in
+                            stringObj = stringObj.appending(rowdata.header + "\n" + rowdata.content + "\n") as NSString
+                        })
+                        _ = pasteBoard.writeObjects([stringObj])
+                        
+                    }, label: {
+                        Text("Copy")
+                    })
+                    Spacer().fixedSize().frame(width:20)
+                }
+                
                 // Display provider responses
                 HStack(alignment:.top) {
                     Spacer().fixedSize().frame(width: 20)
@@ -71,8 +100,6 @@ struct ContentView: View {
                         ScrollView {
                           ForEach(presenter.displayData, id: \.self) { content in
                              DisplayRowContent(rowContent: content)
-                            
-    //                            .padding(EdgeInsets(top: 0, leading: 0, bottom: 5, trailing: 0))
                           }
 
                         }
@@ -91,6 +118,7 @@ struct ContentView: View {
             .background(BACKGROUND_MAIN)
             .edgesIgnoringSafeArea([.all])
             
+            // Info view - only shows if showInfo is true (info icon is pressed)
             VStack {
                 if showInfo {
                     Spacer().fixedSize().frame(height:60)
@@ -148,6 +176,10 @@ struct ContentView: View {
             providerPath = inruptCom.path
         case Provider.inrupt_net :
             providerPath = inruptNet.path
+        case Provider.solidweb_org :
+            providerPath = solidwebOrg.path
+        case Provider.trinpod_us :
+            providerPath = trinPodUs.path
         default:
             providerPath = solidCommunity.path
         }

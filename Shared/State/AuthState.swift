@@ -8,7 +8,7 @@
 import Foundation
 
 // Provider info
-struct Solid_community {
+struct Solidcommunity_net {
     var pickerText = "solidcommunity.net"
     var path = "https://solidcommunity.net"
 }
@@ -20,6 +20,16 @@ struct Inrupt_net {
     var pickerText = "inrupt.net"
     var path = "https://inrupt.net"
 }
+struct Solidweb_org {
+    var pickerText = "solidweb.org"
+    var path = "https://solidweb.org"
+}
+struct Trinpod_us {
+    var pickerText = "trinpod.us"
+    var path = "https://trinpod.us"
+}
+
+
 
 // Picker items
 enum Provider: String, CaseIterable, Identifiable {
@@ -27,6 +37,8 @@ enum Provider: String, CaseIterable, Identifiable {
     case solidcommunity_net
     case inrupt_com
     case inrupt_net
+    case solidweb_org
+    case trinpod_us
 
     var id: String { self.rawValue }
 }
@@ -154,7 +166,7 @@ class AuthState: ObservableObject {
         self.registrationResponse = registrationResponse
     }
 
-    func updateAuthStateWithAuthentication(request: AuthorizationRequest, url: URL) {
+    func updateAuthStateWithAuthorization(request: AuthorizationRequest, url: URL) {
         let query = QueryUtilities(url:url)
         var error: NSError?
         var response: AuthorizationResponse? = nil

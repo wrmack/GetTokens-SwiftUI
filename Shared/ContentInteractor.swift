@@ -15,6 +15,13 @@ import AuthenticationServices
 //    var jwks_uri: String
 //}
 
+struct RequestDescription {
+    var httpMethod: String
+    var httpHeaders: [String : String]
+    var httpBody: Data
+    var url: URL
+}
+
 
 
 /// `ContentInteractor` is responsible for interacting with the data model and the network.
@@ -54,6 +61,7 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
     /// A successful response MUST use the 200 OK HTTP status code and return a JSON object using the application/json content type that contains a set of Claims.
     func discoverConfiguration(providerPath: String, presenter: ContentPresenter, authState: AuthState) {
         
+        presenter.displayData = [RowData]()
         presenter.presentTitle(title: "Fetching configuration...")
         
         // Create base URL from input string
@@ -92,7 +100,7 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                     // Update state with configuration data
                     authState.updateAuthStateWithConfig(JSONData: data)
                     // Send configuration data to presenter
-                    presenter.presentData(data: data, requestUrl: discoveryURL, flowStage: "Discovery")
+                    presenter.presentResponse(data: data, url: discoveryURL, flowStage: "Discovery")
                     // Move to next stage
                     registerClient(presenter: presenter, authState: authState)
                 }
@@ -103,33 +111,29 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
     
     // MARK: - Register client
     
-    /// Registers the client (Get tokens) with the authorization server using dynamic registration.
+    /// Registers the client (Get tokens) with the authorization server using the dynamic registration protocol.
     /// - Parameters:
     ///     - presenter: The `ContentPresenter` to send new data to for presenting to `ContentView`
     ///     - authState: The `AuthState` object which holds data we want to track
-    /// - Note: From [OpenID Connect Dynamic Client Registration 1.0](https://openid.net/specs/openid-connect-registration-1_0.html):
     ///
-    /// To register a new Client at the Authorization Server, the Client sends an HTTP POST message to the Client Registration Endpoint with any
-    /// Client Metadata parameters that the Client chooses to specify for itself during the registration. The Authorization Server assigns this Client a
-    /// unique Client Identifier, optionally assigns a Client Secret, and associates the Metadata given in the request with the issued Client Identifier.
-    /// The Authorization Server MAY provision default values for any items omitted in the Client Metadata.
+    /// From [OpenID Connect Dynamic Client Registration 1.0](https://openid.net/specs/openid-connect-registration-1_0.html):
     ///
-    /// The Authorization Server MAY reject or replace any of the Client's requested field values and substitute them with suitable values. If this
-    /// happens, the Authorization Server MUST include these fields in the response to the Client. An Authorization Server MAY ignore values
-    /// provided by the client, and MUST ignore any fields sent by the Client that it does not understand.
+    /// To register a new Client at the Authorization Server, the Client sends an HTTP POST message to the Client Registration Endpoint with any Client Metadata parameters that the Client chooses to specify for itself during the registration. The Authorization Server assigns this Client a unique Client Identifier, optionally assigns a Client Secret, and associates the Metadata given in the request with the issued Client Identifier. The Authorization Server MAY provision default values for any items omitted in the Client Metadata.
     ///
-    ///A successful **response** SHOULD use the HTTP 201 Created status code and return a JSON document [RFC4627] using the application/json
-    ///content type with the following fields and the Client Metadata parameters as top-level members of the root JSON object:
+    /// A successful **response** SHOULD use the HTTP 201 Created status code and return a JSON document [RFC4627] using the application/json content type with the following fields and the Client Metadata parameters as top-level members of the root JSON object:
     ///
     /// - `client_id` REQUIRED. Unique Client Identifier. It MUST NOT be currently valid for any other registered Client.
     /// - `client_secret` OPTIONAL. Client Secret. The same Client Secret value MUST NOT be assigned to multiple Clients.
-    /// - `registration_access_token` OPTIONAL. Registration Access Token that can be used at the Client Configuration Endpoint to perform subsequent
-    /// operations upon the Client registration.
-    /// - `registration_client_uri` OPTIONAL. Location of the Client Configuration Endpoint where the Registration Access Token can be used to
-    /// perform subsequent operations upon the resulting Client registration. Implementations MUST either return both a Client Configuration Endpoint and
-    /// a Registration Access Token or neither of them.
+    /// - `registration_access_token` OPTIONAL. Registration Access Token that can be used at the Client Configuration Endpoint to perform subsequent operations upon the Client registration.
+    /// - `registration_client_uri` OPTIONAL. Location of the Client Configuration Endpoint where the Registration Access Token can be used to perform subsequent operations upon the resulting Client registration. Implementations MUST either return both a Client Configuration Endpoint and a Registration Access Token or neither of them.
     /// - `client_id_issued_at` OPTIONAL. Time at which the Client Identifier was issued.
-    /// `- client_secret_expires_at` REQUIRED if `client_secret` is issued. Time at which the client_secret will expire or 0 if it will not expire.
+    /// - `client_secret_expires_at` REQUIRED if `client_secret` is issued. Time at which the client_secret will expire or 0 if it will not expire.
+    ///
+    /// From [RFC 8252](https://datatracker.ietf.org/doc/html/rfc8252#section-8.4) OAuth 2.0 for Native Apps:
+    ///
+    /// Except when using a mechanism like Dynamic Client Registration [RFC7591] to provision per-instance secrets, native apps are classified as public clients, as defined by Section 2.1 of OAuth 2.0 [RFC6749]; they MUST be registered with the authorization server as such.  Authorization servers MUST record the client type in the client registration details in order to identify and process requests accordingly.
+    ///
+    /// Authorization servers MUST require clients to register their complete redirect URI (including the path component) and reject authorization requests that specify a redirect URI that doesn't exactly match the one that was registered; the exception is loopback redirects, where an exact match is required except for the port URI component.
     func registerClient(presenter: ContentPresenter, authState: AuthState) {
         
         presenter.presentTitle(title: "Registering client...")
@@ -146,7 +150,7 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
         request.responseTypes = ["code"]
         request.grantTypes = ["authorization_code"]
         request.subjectType = nil
-        request.tokenEndpointAuthenticationMethod = "client_secret_post"
+        request.tokenEndpointAuthenticationMethod = "none"
         request.initialAccessToken = nil
         request.additionalParameters = nil
         request.applicationType = kApplicationTypeNative
@@ -191,72 +195,106 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                     // Update state with registration data
                     authState.updateAuthStateWithRegistration(request: request, data: data)
                     // Send registration data to presenter
-                    presenter.presentData(data: data, requestUrl: URLRequest!.url!, flowStage: "Registration")
+                    presenter.presentResponse(data: data, urlRequest: URLRequest!, flowStage: "Registration")
                     // Move to next stage
-                    fetchProviderAuthorizationCode(presenter: presenter, authState: authState)
+                    fetchAuthorizationCode(presenter: presenter, authState: authState)
                     
                 }
             )
     }
     
-    // MARK: - Authorization and receipt of access token
+    // MARK: - Authorization and receipt of access code
     
-    /// 
-    func fetchProviderAuthorizationCode(presenter: ContentPresenter, authState: AuthState) {
+    /// Sends an authentication request to the authorization endpoint. The request contains the client ID obtained from registering the client and a redirect url.
+    /// The authorization server presents a log-in page using an 'external user-agent' (browser).  When the user has been authenticated and the user has given consent for the client (Get tokens) to access the user's resources, the authorization returns an access code to the redirect url.  The access code is used for requesting tokens.
+    ///
+    /// - Parameters:
+    ///     - presenter: The `ContentPresenter` to send new data to for presenting to `ContentView`
+    ///     - authState: The `AuthState` object which holds data we want to track
+    ///
+    /// From: [OpenID](https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth):
+    ///
+    /// The Authorization Code Flow returns an Authorization Code to the Client, which can then exchange it for an ID Token and an Access Token directly. This provides the benefit of not exposing any tokens to the User Agent and possibly other malicious applications with access to the User Agent.
+    ///
+    /// An Authentication Request is an OAuth 2.0 Authorization Request that requests that the End-User be authenticated by the Authorization Server. Clients MAY use the HTTP GET or POST methods to send the Authorization Request to the Authorization Server.
+    ///
+    /// OpenID Connect uses the following OAuth 2.0 request parameters with the Authorization Code Flow:
+    ///
+    /// - `scope` REQUIRED. OpenID Connect requests MUST contain the openid scope value. If the openid scope value is not present, the behavior is entirely unspecified. Other scope values MAY be present. Scope values used that are not understood by an implementation SHOULD be ignored. See Sections 5.4 and 11 for additional scope values defined by this specification.
+    /// - `response_type` REQUIRED. OAuth 2.0 Response Type value that determines the authorization processing flow to be used, including what parameters are returned from the endpoints used. When using the Authorization Code Flow, this value is code.
+    /// - `client_id` REQUIRED. OAuth 2.0 Client Identifier valid at the Authorization Server.
+    /// - `redirect_uri`  REQUIRED. Redirection URI to which the response will be sent.
+    /// - `state` RECOMMENDED. Opaque value used to maintain state between the request and the callback. Typically, Cross-Site Request Forgery (CSRF, XSRF) mitigation is done by cryptographically binding the value of this parameter with a browser cookie.
+    ///
+    func fetchAuthorizationCode(presenter: ContentPresenter, authState: AuthState) {
         
         presenter.presentTitle(title: "Authorizing client...")
         
         guard let redirectURI = URL(string: authState.kRedirectURI) else { print("Error creating URL for : \(authState.kRedirectURI)"); return }
         let configuration = authState.opConfig
-        let registrationResponse = authState.registrationResponse
-        let clientID = registrationResponse!.clientID
-        let clientSecret = registrationResponse!.clientSecret
+        let clientID = authState.registrationResponse!.clientID
+//        let clientSecret = registrationResponse!.clientSecret
         
         let request = AuthorizationRequest(
             configuration: configuration,
             clientId: clientID,
-            clientSecret: clientSecret,
+//            clientSecret: clientSecret,
             scopes: [kScopeOpenID, kScopeProfile, kScopeOfflineAccess],
             redirectURL: redirectURI,
             responseType: kResponseTypeCode
         )
-        
         
         cancellable = Future<URL, Error> { completion in
                     
             let authSession = ASWebAuthenticationSession(
                 url: request.authorizationRequestURL()!,
                 callbackURLScheme: request.redirectURL?.scheme) { (url, error) in
-                if let error = error {
-                    completion(.failure(error))
-                } else if let url = url {
-                    completion(.success(url))
+                    if let error = error {
+                        completion(.failure(error))
+                    } else if let url = url {
+                        completion(.success(url))
+                    }
                 }
-            }
             
             authSession.presentationContextProvider = self
             authSession.prefersEphemeralWebBrowserSession = true
             authSession.start()
         }
         .receive(on: DispatchQueue.main)
-        .sink(receiveCompletion: { completion in
-            switch completion {
-            case .failure(let error):
-                print("Received error: \(error)")
-            case .finished:
-                print("Success")
+        .sink(
+            receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
+                    print("Received error: \(error)")
+                case .finished:
+                    print("Success")
+                }
+            },
+            receiveValue: { [self] url in
+                // Update state with authorization data
+                authState.updateAuthStateWithAuthorization(request: request, url: url)
+                // Send authorization data to presenter
+                presenter.presentResponse(dataURL: url, url: request.authorizationRequestURL()!, flowStage: "Authorization")
+                // Move to next stage
+                fetchTokensFromTokenEndpoint(presenter: presenter, authState: authState)
             }
-        },
-        receiveValue: { [self] url in
-            authState.updateAuthStateWithAuthentication(request: request, url: url)
-            presenter.presentDataFromURL(dataURL: url, requestUrl: request.authorizationRequestURL()!, flowStage: "Authorization")
-            fetchTokensFromTokenEndpoint(presenter: presenter, authState: authState)
-        })
+        )
     }
     
     
     // MARK: - Fetch tokens
     
+    /// Exchanges the authorization code for an access token, id token and refresh token
+    ///
+    /// - Parameters:
+    ///     - presenter: The `ContentPresenter` to send new data to for presenting to `ContentView`
+    ///     - authState: The `AuthState` object which holds data we want to track
+    ///
+    /// From: [OpenID](https://openid.net/specs/openid-connect-core-1_0.html#TokenRequest)
+    ///
+    /// A Client makes a Token Request by presenting its Authorization Grant (in the form of an Authorization Code) to the Token Endpoint using the `grant_type` value `authorization_code`, as described in Section 4.1.3 of OAuth 2.0 [RFC6749]. If the Client is a Confidential Client, then it MUST authenticate to the Token Endpoint using the authentication method registered for its client_id, as described in Section 9.
+    ///
+    /// The Client sends the parameters to the Token Endpoint using the HTTP POST method and the Form Serialization, per Section 13.2, as described in Section 4.1.3 of OAuth 2.0 [RFC6749].
     func fetchTokensFromTokenEndpoint(presenter: ContentPresenter, authState: AuthState)  {
         
         presenter.presentTitle(title: "Fetching tokens...")
@@ -267,7 +305,8 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
             authorizationCode: authState.authorizationResponse!.authorizationCode,
             redirectURL: authorizationRequest!.redirectURL,
             clientID: authorizationRequest!.clientID,
-            clientSecret: authorizationRequest!.clientSecret,
+//            clientSecret: authorizationRequest!.clientSecret,
+            clientSecret: nil,
             scope: nil,
             refreshToken: nil,
             codeVerifier: authorizationRequest!.codeVerifier,
@@ -300,7 +339,7 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                 },
                 receiveValue: { [self] data in                    
                     authState.updateAuthStateWithTokens(tokenExchangeRequest: tokenExchangeRequest, JSONData: data)
-                    presenter.presentData(data: data, requestUrl: URLRequest.url!, flowStage: "Tokens")
+                    presenter.presentResponse(data: data, urlRequest: URLRequest, flowStage: "Tokens")
                     fetchUserInfo(presenter: presenter, authState: authState)
                 }
             )
@@ -360,7 +399,7 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                     },
                     receiveValue: {  data in
                         print("Data from userinfo: \(data)")
-                        presenter.presentData(data: data, requestUrl: request.url!, flowStage: "Userinfo")
+                        presenter.presentResponse(data: data, urlRequest: request, flowStage: "Userinfo")
                     }
                 )
         }

@@ -20,9 +20,11 @@ import SwiftUI
 ///
 /// This pattern is based on the VIP (View-Interactor-Presenter) and VMVM (View-Model-ViewModel) patterns.
 struct ContentView: View {
-    var solidCommunity = Solid_community()
+    var solidCommunity = Solidcommunity_net()
     var inruptCom = Inrupt_com()
     var inruptNet = Inrupt_net()
+    var solidwebOrg = Solidweb_org()
+    var trinPodUs = Trinpod_us()
     var interactor = ContentInteractor()
     
     @Environment(\.horizontalSizeClass) var horizontalSizeClass: UserInterfaceSizeClass?
@@ -51,6 +53,8 @@ struct ContentView: View {
                         Text(solidCommunity.pickerText).tag(Provider.solidcommunity_net)
                         Text(inruptCom.pickerText).tag(Provider.inrupt_com)
                         Text(inruptNet.pickerText).tag(Provider.inrupt_net)
+                        Text(solidwebOrg.pickerText).tag(Provider.solidweb_org)
+                        Text(trinPodUs.pickerText).tag(Provider.trinpod_us)
                     }
                     .pickerStyle(MenuPickerStyle())
                     .onChange(of: selectedProvider, perform: { value in
@@ -153,6 +157,10 @@ struct ContentView: View {
             providerPath = inruptCom.path
         case Provider.inrupt_net :
             providerPath = inruptNet.path
+        case Provider.solidweb_org :
+            providerPath = solidwebOrg.path
+        case Provider.trinpod_us :
+            providerPath = trinPodUs.path
         default:
             providerPath = solidCommunity.path
         }
