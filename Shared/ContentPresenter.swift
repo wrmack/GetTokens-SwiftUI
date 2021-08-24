@@ -49,9 +49,16 @@ class ContentPresenter: ObservableObject {
         let header = getHeader(flowStage)
         var requestPrettyPrintedString = ""
         if urlRequest.httpMethod == "POST" && urlRequest.httpBody != nil {
+            // The body is JSON data
             if let jsonObject = try? JSONSerialization.jsonObject(with: urlRequest.httpBody!, options: []) {
                 let jsonData = try! JSONSerialization.data(withJSONObject: jsonObject, options: [.withoutEscapingSlashes, .prettyPrinted])
                 requestPrettyPrintedString = String(data: jsonData, encoding: String.Encoding(rawValue: String.Encoding.utf8.rawValue))!
+            }
+            // The body is a string with key-value pairs separated by '&'
+            else {
+                requestPrettyPrintedString = String(data: urlRequest.httpBody!, encoding: .utf8)!
+                    .components(separatedBy: "&")
+                    .joined(separator: "&\n")
             }
         }
         let jsonObject = try? JSONSerialization.jsonObject(with: data, options: [])
@@ -108,7 +115,8 @@ class ContentPresenter: ObservableObject {
         let components = URLComponents(url: url, resolvingAgainstBaseURL: true)
         let queryItems = components?.queryItems
         queryItems!.forEach({item in
-            str = str + item.name + ": " + item.value! + "\n"
+            let suff = item == queryItems!.last ? "" : "&\n"
+            str = str + item.name + "=" + item.value! + suff
         })
         
         return str

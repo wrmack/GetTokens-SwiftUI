@@ -44,10 +44,10 @@ struct ContentView: View {
 
                 // Select provider
                 HStack {
-                    Image("gt-icon")
+                    Image("tokenIcon")
                         .resizable()
                         .antialiased(true)
-                        .frame(width:50,height:50)
+                        .frame(width:40,height:28)
                         .padding(.all, 20)
 
                     Spacer()
@@ -94,20 +94,21 @@ struct ContentView: View {
                 // Display provider responses
                 HStack(alignment:.top) {
                     Spacer().fixedSize().frame(width: 20)
-                    VStack{
+                    VStack (alignment:.center){
                         Text(presenter.displayTitle)
                             .font(.system(size: 16))
+
                         ScrollView {
                           ForEach(presenter.displayData, id: \.self) { content in
-                             DisplayRowContent(rowContent: content)
+                            DisplayRowContent(rowContent: content)
                           }
 
                         }
                         .background(Color.white)
-       
+                        .frame(maxWidth:.infinity)
                     }
                     .padding()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
                     .background(Color.white)
                     .foregroundColor(Color.black)
                     
@@ -118,7 +119,7 @@ struct ContentView: View {
             .background(BACKGROUND_MAIN)
             .edgesIgnoringSafeArea([.all])
             
-            // Info view - only shows if showInfo is true (info icon is pressed)
+            // Info view - only shows if showInfo is true (ie info icon is pressed)
             VStack {
                 if showInfo {
                     Spacer().fixedSize().frame(height:60)
@@ -155,12 +156,17 @@ struct ContentView: View {
                 Text(rowContent.header)
                     .frame(maxWidth: .infinity, alignment: .topLeading)
                     .font(.system(size: 12, weight: .semibold))
+
                 Divider()
                     .frame(height: 2)
                     .background(Color(white: 0.4, opacity: 0.8))
                 Text(rowContent.content)
+//                    .lineLimit(nil)
+//                    .minimumScaleFactor(0.9)  // Avoid truncating text - scales it to fit instead
                     .frame(maxWidth: .infinity, alignment: .topLeading)
                     .font(.system(size: 12, weight: .regular))
+
+
             }
             .background(Color.white)
         }

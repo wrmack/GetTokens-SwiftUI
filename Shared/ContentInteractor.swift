@@ -54,11 +54,17 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
     ///     - providerPath: The path to the OIDC Provider eg https://solidcommunity.net
     ///     - presenter: The `ContentPresenter` to send new data to for presenting to `ContentView`
     ///     - authState: The `AuthState` object which holds data we want to track
-    /// - Note: From [OpenID Connect Discovery 1.0, part 4](https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig):
+    ///
+    /// From [OpenID Connect Discovery 1.0, part 4](https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig):
     ///
     /// An OpenID Provider Configuration Document MUST be queried using an HTTP GET request.
     ///
     /// A successful response MUST use the 200 OK HTTP status code and return a JSON object using the application/json content type that contains a set of Claims.
+    ///
+    /// From [Solid-OIDC]()
+    ///
+    /// An Identity Provider that conforms to the Solid-OIDC specification MUST advertise this in the OpenID Connect Discovery 1.0 resource. An Identity Provider would indicate this support by using the solid_oidc_supported metadata property, referencing the Solid-OIDC specification URL.
+    ///
     func discoverConfiguration(providerPath: String, presenter: ContentPresenter, authState: AuthState) {
         
         presenter.displayData = [RowData]()
@@ -203,10 +209,10 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
             )
     }
     
-    // MARK: - Authorization and receipt of access code
+    // MARK: - Authorization and receipt of authorization code
     
     /// Sends an authentication request to the authorization endpoint. The request contains the client ID obtained from registering the client and a redirect url.
-    /// The authorization server presents a log-in page using an 'external user-agent' (browser).  When the user has been authenticated and the user has given consent for the client (Get tokens) to access the user's resources, the authorization returns an access code to the redirect url.  The access code is used for requesting tokens.
+    /// The authorization server presents a log-in page using an 'external user-agent' (browser).  When the user has been authenticated and the user has given consent for the client (Get tokens) to access the user's resources, the authorization returns an authorization code to the redirect url.  The authorization code is used for requesting tokens.
     ///
     /// - Parameters:
     ///     - presenter: The `ContentPresenter` to send new data to for presenting to `ContentView`
@@ -225,6 +231,16 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
     /// - `client_id` REQUIRED. OAuth 2.0 Client Identifier valid at the Authorization Server.
     /// - `redirect_uri`  REQUIRED. Redirection URI to which the response will be sent.
     /// - `state` RECOMMENDED. Opaque value used to maintain state between the request and the callback. Typically, Cross-Site Request Forgery (CSRF, XSRF) mitigation is done by cryptographically binding the value of this parameter with a browser cookie.
+    ///
+    /// **Proof Key for Code Exchange (PKCE)**
+    ///
+    /// From [RFC 7636](https://datatracker.ietf.org/doc/html/rfc7636)
+    ///
+    /// The Authorization Code is returned to the requester via the Redirection Endpoint URI. it is possible for a malicious app to register itself as a handler for the custom scheme in addition to the legitimate OAuth 2.0  app.  Once it does so, the malicious app is now able to intercept the authorization code.  This allows the attacker to request and obtain an access token.
+    ///
+    /// To mitigate this attack, this extension utilizes a dynamically created cryptographically random key called "code verifier".  A unique code verifier is created for every authorization request, and its transformed value, called "code challenge", is sent to the authorization server to obtain the authorization code.  The authorization code obtained is then sent to the token endpoint with the "code verifier", and the server compares it with the previously received request code so that it can perform the proof of possession of the "code verifier" by the client.  This works as the mitigation since the attacker would not know this one-time key, since it is sent over TLS and cannot be intercepted.
+    ///
+    /// The `code_challenge` is `BASE64URL-ENCODE(SHA256(ASCII(code_verifier)))`
     ///
     func fetchAuthorizationCode(presenter: ContentPresenter, authState: AuthState) {
         

@@ -613,7 +613,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 41022ABC26B32AAA00F20185 /* Build configuration list for PBXProject "GetTokens-SwiftUI" */;
+			buildConfigurationList = 41022ABC26B32AAA00F20185 /* Build configuration list for PBXProject "Get tokens" */;
 			compatibilityVersion = "Xcode 12.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -1170,7 +1170,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		41022ABC26B32AAA00F20185 /* Build configuration list for PBXProject "GetTokens-SwiftUI" */ = {
+		41022ABC26B32AAA00F20185 /* Build configuration list for PBXProject "Get tokens" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				41022AED26B32AAC00F20185 /* Debug */,

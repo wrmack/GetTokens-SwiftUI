@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-let BACKGROUND_MAIN = Color(red: 0.9,green: 0.2,blue: 0.2)
+let BACKGROUND_MAIN = Color(red: 0.4,green: 0.4,blue: 0.4)
 
 let kIssuerKey = "issuer"
 let kAuthorizationEndpointKey = "authorization_endpoint"

@@ -46,7 +46,7 @@ The specifications relevant to each stage.
 - [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749#section-4.1) The OAuth 2.0 Authorization Framework - 4.1.  Authorization Code Grant
 - [RFC 8252](https://datatracker.ietf.org/doc/html/rfc8252) OAuth 2.0 for Native Apps
 - [RFC 7636](https://datatracker.ietf.org/doc/html/rfc7636) Proof Key for Code Exchange by OAuth Public Clients
-- [Solid-OIDC](https://solid.github.io/solid-oidc/) (nothing about getting getting authenticated and receiving access code)
+- [Solid-OIDC](https://solid.github.io/solid-oidc/) (nothing about getting getting authenticated and receiving authorization code)
 
 ### Token exchange
 - [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint) 3.1.3 Token endpoint
