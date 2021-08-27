@@ -244,7 +244,7 @@ class AuthState: ObservableObject {
             // OpenID Connect Core Section 3.1.3.7. rule #3
             // Validates that the audience of the ID Token matches the client ID.
             let clientID = tokenResponse.request!.clientID
-            if !idToken!.audience!.contains(clientID) {
+            if !idToken!.audience!.contains(clientID!) {
                 let invalidIDToken: NSError? = ErrorUtilities.error(code: ErrorCode.IDTokenFailedValidationError, underlyingError: nil, description: "Audience mismatch")
                 DispatchQueue.main.async(execute: {
                     print("Token error: \(invalidIDToken!.localizedDescription)")
