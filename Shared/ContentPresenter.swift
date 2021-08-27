@@ -8,6 +8,14 @@
 import Foundation
 import Combine
 
+
+struct RowData: Hashable {
+    var header = ""
+    var content = ""
+}
+
+
+
 /// `ContentPresenter` is responsible for formatting data it receives from `ContentInteractor`
 /// so that it is ready for presentation by `ContentView`.
 ///
@@ -29,13 +37,14 @@ class ContentPresenter: ObservableObject {
         displayTitle = title
     }
     
-    // The request is just an url and response is data.
+
     // Discovery stage
-    func presentResponse(data: Data, url: URL, flowStage: String) {
+    // The request is an url and response is JSON data.
+    func presentResponse(url: URL, jsonData: Data, flowStage: String) {
         let header = getHeader(flowStage)
-        let jsonObject = try? JSONSerialization.jsonObject(with: data, options: [])
-        let jsonData = try! JSONSerialization.data(withJSONObject: jsonObject!, options: [.withoutEscapingSlashes, .prettyPrinted])
-        let prettyPrintedString = String(data: jsonData, encoding: String.Encoding(rawValue: String.Encoding.utf8.rawValue) )!
+        let jsonObject = try? JSONSerialization.jsonObject(with: jsonData, options: [])
+        let json = try! JSONSerialization.data(withJSONObject: jsonObject!, options: [.withoutEscapingSlashes, .prettyPrinted])
+        let prettyPrintedString = String(data: json, encoding: String.Encoding(rawValue: String.Encoding.utf8.rawValue) )!
         let newContent = "The request is to:\n\(url.absoluteString)\n\nThe response is:\n\n" + prettyPrintedString
         let newRowData = RowData(header: header, content: newContent)
         displayTitle = ""
@@ -44,8 +53,9 @@ class ContentPresenter: ObservableObject {
         print("\nResponse from \(flowStage):\n\(prettyPrintedString)")
     }
     
-    // Request is an URLRequest.
-    func presentResponse(data: Data, urlRequest: URLRequest, flowStage: String) {
+    // Request in form of URLRequest
+    // Registration, token exchange and userinfo requests
+    func presentRequest(urlRequest: URLRequest, flowStage: String) {
         let header = getHeader(flowStage)
         var requestPrettyPrintedString = ""
         if urlRequest.httpMethod == "POST" && urlRequest.httpBody != nil {
@@ -61,37 +71,75 @@ class ContentPresenter: ObservableObject {
                     .joined(separator: "&\n")
             }
         }
-        let jsonObject = try? JSONSerialization.jsonObject(with: data, options: [])
-        let jsonData = try! JSONSerialization.data(withJSONObject: jsonObject!, options: [.withoutEscapingSlashes, .prettyPrinted])
-        let responsePrettyPrintedString = String(data: jsonData, encoding: String.Encoding(rawValue: String.Encoding.utf8.rawValue))!
+        let headerFieldsString = urlRequest.allHTTPHeaderFields!.map {
+            "\"" + $0.0 + "\"" + ": " + "\"" + $0.1 + "\""
+        }.joined(separator: ",\n")
+        
         let newContent = """
             The request is to: \(urlRequest.url!.absoluteString)
             http method: \(urlRequest.httpMethod!)
-            http headers: \(urlRequest.allHTTPHeaderFields!)
+            http headers: [\n\(headerFieldsString)\n]
             http body: \n\(requestPrettyPrintedString)
             
-            The response is:\n\n \(responsePrettyPrintedString)
             """
         let newRowData = RowData(header: header, content: newContent)
-        displayTitle = ""
         displayData.append(newRowData)
-        print("\n\(flowStage) request is to:\n\(urlRequest.url!.absoluteString)")
-        print("\nResponse from \(flowStage):\n\(responsePrettyPrintedString)")
     }
     
-    // Request is an url and response is an url
-    func presentResponse(dataURL: URL, url: URL, flowStage: String) {
+    // Request is an url containing a query
+    // Authorization request
+    func presentRequest(url: URL, flowStage: String) {
         let header = getHeader(flowStage)
         let queryString = getQueryString(url)
-        let responseString = getQueryString(dataURL)
-        let newContent = "The request is to:\n\(url.absoluteString)\n\nSummary - the request's query components:\n\n\(queryString)\nThe response is:\n\(dataURL.absoluteString) \n\nSummary - response components: \n\n\(responseString)"
+        let newContent = "The request is to:\n\(url.absoluteString)\n\nSummary - the request's query components:\n\n\(queryString)\n"
         let newRowData = RowData(header: header, content: newContent)
-        displayTitle = ""
         displayData.append(newRowData)
         print("\n\(flowStage) \(newContent)")
     }
     
-    // Helper
+    // Registration, token exchange and userinfo responses
+    func presentResponse(jsonData: Data) {
+        let jsonObject = try? JSONSerialization.jsonObject(with: jsonData, options: [])
+        let json = try! JSONSerialization.data(withJSONObject: jsonObject!, options: [.withoutEscapingSlashes, .prettyPrinted])
+        let responsePrettyPrintedString = String(data: json, encoding: String.Encoding(rawValue: String.Encoding.utf8.rawValue))!
+        let responseString = "\nThe response is:\n\n \(responsePrettyPrintedString)"
+
+        let lastRowData = displayData.removeLast()
+        let lastContent = lastRowData.content
+        let updatedContent = lastContent.appending(responseString)
+        let newRowData = RowData(header: lastRowData.header, content: updatedContent)
+        displayData.append(newRowData)
+        displayTitle = ""
+    }
+    
+    // Authorization response
+    func presentResponse(url: URL) {
+        let responseQueryString = getQueryString(url)
+        let responseString = "\nThe response is:\n\(url.absoluteString) \n\nSummary - response components: \n\n\(responseQueryString)"
+        
+        let lastRowData = displayData.removeLast()
+        let lastContent = lastRowData.content
+        let updatedContent = lastContent.appending(responseString)
+        let newRowData = RowData(header: lastRowData.header, content: updatedContent)
+        displayData.append(newRowData)
+        displayTitle = ""
+    }
+    
+    func presentError(error: Error) {
+        let lastRowData = displayData.removeLast()
+        let lastContent = lastRowData.content
+        let updatedContent = lastContent.appending("""
+            
+            ERROR: \(error.localizedDescription)
+            
+            """
+        )
+        let newRowData = RowData(header: lastRowData.header, content: updatedContent)
+        displayData.append(newRowData)
+    }
+    
+    
+    // Helpers
     func getHeader(_ flowStage: String) -> String {
         var header = ""
         switch flowStage {
@@ -103,6 +151,8 @@ class ContentPresenter: ObservableObject {
             header = kAuthorizationHeader
         case "Tokens":
             header = kTokenHeader
+        case "Userinfo":
+            header = kUserInfoHeader
         default:
             header = ""
         }

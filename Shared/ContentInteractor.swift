@@ -97,6 +97,7 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                 receiveCompletion: { completion in
                     switch completion {
                     case .failure(let error):
+                        presenter.presentError(error: error)
                         print(error)
                     case .finished:
                         print("Successfully discovered configuration")
@@ -106,7 +107,7 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                     // Update state with configuration data
                     authState.updateAuthStateWithConfig(JSONData: data)
                     // Send configuration data to presenter
-                    presenter.presentResponse(data: data, url: discoveryURL, flowStage: "Discovery")
+                    presenter.presentResponse(url: discoveryURL, jsonData: data, flowStage: "Discovery")
                     // Move to next stage
                     registerClient(presenter: presenter, authState: authState)
                 }
@@ -176,6 +177,7 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
             return
         }
         
+        presenter.presentRequest(urlRequest: URLRequest!, flowStage: "Registration")
         
         cancellable = URLSession.shared
             .dataTaskPublisher(for: URLRequest!)
@@ -192,6 +194,7 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                 receiveCompletion: { completion in
                     switch completion {
                     case .failure(let error):
+                        presenter.presentError(error: error)
                         print("Received error: \(error)")
                     case .finished:
                         print("Success")
@@ -201,7 +204,7 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                     // Update state with registration data
                     authState.updateAuthStateWithRegistration(request: request, data: data)
                     // Send registration data to presenter
-                    presenter.presentResponse(data: data, urlRequest: URLRequest!, flowStage: "Registration")
+                    presenter.presentResponse(jsonData: data)
                     // Move to next stage
                     fetchAuthorizationCode(presenter: presenter, authState: authState)
                     
@@ -259,6 +262,7 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
             redirectURL: redirectURI,
             responseType: kResponseTypeCode
         )
+        presenter.presentRequest(url: request.authorizationRequestURL()!, flowStage: "Authorization")
         
         cancellable = Future<URL, Error> { completion in
                     
@@ -281,6 +285,7 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
             receiveCompletion: { completion in
                 switch completion {
                 case .failure(let error):
+                    presenter.presentError(error: error)
                     print("Received error: \(error)")
                 case .finished:
                     print("Success")
@@ -290,7 +295,7 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                 // Update state with authorization data
                 authState.updateAuthStateWithAuthorization(request: request, url: url)
                 // Send authorization data to presenter
-                presenter.presentResponse(dataURL: url, url: request.authorizationRequestURL()!, flowStage: "Authorization")
+                presenter.presentResponse(url: url)
                 // Move to next stage
                 fetchTokensFromTokenEndpoint(presenter: presenter, authState: authState)
             }
@@ -316,22 +321,19 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
         presenter.presentTitle(title: "Fetching tokens...")
         
         let authorizationRequest = authState.authorizationResponse?.request
-        let tokenExchangeRequest = TokenRequest(configuration: authorizationRequest?.configuration,
+        var tokenExchangeRequest = TokenRequest(configuration: authorizationRequest?.configuration,
             grantType: kGrantTypeAuthorizationCode,
             authorizationCode: authState.authorizationResponse!.authorizationCode,
             redirectURL: authorizationRequest!.redirectURL,
-            clientID: authorizationRequest!.clientID,
-//            clientSecret: authorizationRequest!.clientSecret,
-            clientSecret: nil,
-            scope: nil,
-            refreshToken: nil,
-            codeVerifier: authorizationRequest!.codeVerifier,
-            nonce: authorizationRequest?.nonce
-//            additionalParameters: authorizationRequest!.additionalParameters
+            clientID: authorizationRequest!.clientID, 
+            codeVerifier: authorizationRequest!.codeVerifier
         )
         let URLRequest = tokenExchangeRequest.urlRequest()
+        
+        presenter.presentRequest(urlRequest: URLRequest, flowStage: "Tokens")
+        
         print("URLRequest for tokens: \(URLRequest)")
-        print("URLRequest for tokens showing body: \(tokenExchangeRequest.description(request: URLRequest)!)")
+//        print("URLRequest for tokens showing body: \(tokenExchangeRequest.description(request: URLRequest)!)")
         
         cancellable = URLSession.shared
             .dataTaskPublisher(for: URLRequest)
@@ -348,6 +350,7 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                 receiveCompletion: { completion in
                     switch completion {
                     case .failure(let error):
+                        presenter.presentError(error: error)
                         print("Error fetching tokens: \(error)")
                     case .finished:
                         print("Success fetching tokens")
@@ -355,7 +358,7 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                 },
                 receiveValue: { [self] data in                    
                     authState.updateAuthStateWithTokens(tokenExchangeRequest: tokenExchangeRequest, JSONData: data)
-                    presenter.presentResponse(data: data, urlRequest: URLRequest, flowStage: "Tokens")
+                    presenter.presentResponse(jsonData: data)
                     fetchUserInfo(presenter: presenter, authState: authState)
                 }
             )
@@ -370,29 +373,17 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
             print("Userinfo endpoint not declared in discovery document")
             return
         }
-        let currentAccessToken = authState.tokenResponse!.accessToken
+        let accessToken = authState.tokenResponse!.accessToken
         print("Performing userinfo request")
-        let tokenManager = TokenManager(authState: authState)
-        tokenManager.performActionWithFreshTokens() { accessToken, idToken, error in
-
-            if error != nil {
-                print("Error fetching fresh tokens: \(error!.localizedDescription)")
-                return
-            }
-
-            // log whether a token refresh occurred
-            if currentAccessToken != accessToken {
-                print("Access token was refreshed automatically")
-            } else {
-                print("Access token was fresh and not updated \(accessToken!)")
-            }
 
             // creates request to the userinfo endpoint, with access token in the Authorization header  // check 'Content-Type': 'application/json'
             var request =  URLRequest(url: userinfoEndpoint!)
             request.httpMethod = "GET"
-            request.addValue("DPoP \(accessToken!)", forHTTPHeaderField: "authorization")
+            request.addValue("DPoP \(accessToken!)", forHTTPHeaderField: "authorization") 
             request.addValue("\(self.dpopToken(authState: authState)!)", forHTTPHeaderField: "dpop")
             request.addValue("application/x-www-form-urlencoded; charset=UTF-8", forHTTPHeaderField: "Content-Type")
+            
+            presenter.presentRequest(urlRequest: request, flowStage: "Userinfo")
             
             self.cancellable = URLSession.shared
                 .dataTaskPublisher(for:request)
@@ -408,6 +399,7 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                     receiveCompletion: { completion in
                         switch completion {
                         case .failure(let error):
+                            presenter.presentError(error: error)
                             print("Error fetching userinfo \(error)")
                         case .finished:
                             print("Success fetching userinfo")
@@ -415,10 +407,10 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
                     },
                     receiveValue: {  data in
                         print("Data from userinfo: \(data)")
-                        presenter.presentResponse(data: data, urlRequest: request, flowStage: "Userinfo")
+                        presenter.presentResponse(jsonData: data)
                     }
                 )
-        }
+        
     }
     
     func dpopToken(authState: AuthState) -> String? {

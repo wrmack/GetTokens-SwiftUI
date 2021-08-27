@@ -25,6 +25,7 @@ struct ContentView: View {
     var inruptNet = Inrupt_net()
     var solidwebOrg = Solidweb_org()
     var trinPodUs = Trinpod_us()
+    var localHost = LocalHost()
     var interactor = ContentInteractor()
     
     @Environment(\.horizontalSizeClass) var horizontalSizeClass: UserInterfaceSizeClass?

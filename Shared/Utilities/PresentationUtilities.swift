@@ -9,8 +9,8 @@ import Foundation
 
 // MARK: String constants
 
-let rule1 = "***********************************************\n"
-let rule2 = "-----------------------------------------------\n"
+let kRule1 = "***********************************************\n"
+let kRule2 = "-----------------------------------------------\n"
 
 let kDiscoveryHeader = """
 Stage 1: Discovery\n
@@ -44,23 +44,15 @@ The app will use the authorization code to request tokens.
 let kTokenHeader = """
 Stage 4: Get tokens \n
 The app makes a POST request using the authorization code.
-The OpenID Provider returns:
-  token_type
-  access_token
-  id_token
-  refresh_token
-  expires_in
-The access_token can be used for accessing protected resources.
+
+The OP returns an access_token, id_token and refresh_token can be used for accessing protected resources.
 """
 
 let kUserInfoHeader = """
+Userinfo
+
 Now get userinfo by presenting DPoP access token
 """
 
 
-// MARK: - Struct for presenting header and content
 
-struct RowData: Hashable {
-    var header = ""
-    var content = ""
-}

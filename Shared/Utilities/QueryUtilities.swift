@@ -21,7 +21,8 @@ class QueryUtilities: NSObject {
     private(set) var parameterNames: [String] = []
     
     ///  The parameters represented as a dictionary.
-    ///  - remark: All values are `NSString` except for parameters which contain multiple values, in
+    ///
+    /// All values are `NSString` except for parameters which contain multiple values, in
     /// which case the value is an `NSArray<NSString *>` .
     var dictionaryValue: [String : (NSObject & NSCopying)] = [:]
     
@@ -104,18 +105,6 @@ class QueryUtilities: NSObject {
         }
         return queryParameters
     }
-    
-    //    var queryItems: [URLQueryItem]? {
-    //        var queryParameters: [URLQueryItem] = []
-    //        for parameterName in parameters.keys {
-    //            let values = parameters[parameterName]
-    //            for value: String in values! {
-    //                let item = URLQueryItem(name: parameterName, value: value)
-    //                queryParameters.append(item)
-    //            }
-    //        }
-    //        return queryParameters
-    //    }
     
     class func urlParamValueAllowedCharacters() -> CharacterSet? {
         // Starts with the standard URL-allowed character set.

@@ -7,41 +7,7 @@
 
 import Foundation
 
-// Provider info
-struct Solidcommunity_net {
-    var pickerText = "solidcommunity.net"
-    var path = "https://solidcommunity.net"
-}
-struct Inrupt_com {
-    var pickerText = "inrupt.com"
-    var path = "https://broker.pod.inrupt.com"
-}
-struct Inrupt_net {
-    var pickerText = "inrupt.net"
-    var path = "https://inrupt.net"
-}
-struct Solidweb_org {
-    var pickerText = "solidweb.org"
-    var path = "https://solidweb.org"
-}
-struct Trinpod_us {
-    var pickerText = "trinpod.us"
-    var path = "https://trinpod.us"
-}
 
-
-
-// Picker items
-enum Provider: String, CaseIterable, Identifiable {
-    case none
-    case solidcommunity_net
-    case inrupt_com
-    case inrupt_net
-    case solidweb_org
-    case trinpod_us
-
-    var id: String { self.rawValue }
-}
 
 class AuthState: ObservableObject {
     let kRedirectURI = "com.wm.get-tokens:/mypath"
@@ -349,18 +315,18 @@ class AuthState: ObservableObject {
     
     
     // MARK: - OAuth Requests
-    func tokenRefreshRequest() -> TokenRequest? {
-        return tokenRefreshRequest(withAdditionalParameters: nil)
-    }
-    
-    
-    func tokenRefreshRequest(withAdditionalParameters additionalParameters: [String : AnyCodable]?) -> TokenRequest? {
-        // TODO: Add unit test to confirm exception is thrown when expected
-        if !(tokenResponse?.refreshToken != nil) {
-            ErrorUtilities.raiseException(name: kRefreshTokenRequestException)
-        }
-        return TokenRequest(configuration: authorizationResponse!.request!.configuration, grantType: kGrantTypeRefreshToken, authorizationCode: nil, redirectURL: nil, clientID: authorizationResponse!.request!.clientID, clientSecret:authorizationResponse!.request!.clientSecret, scope: nil, refreshToken: tokenResponse?.refreshToken, codeVerifier: nil, nonce: nil)
-    }
+//    func tokenRefreshRequest() -> TokenRequest? {
+//        return tokenRefreshRequest(withAdditionalParameters: nil)
+//    }
+//    
+//    
+//    func tokenRefreshRequest(withAdditionalParameters additionalParameters: [String : AnyCodable]?) -> TokenRequest? {
+//        // TODO: Add unit test to confirm exception is thrown when expected
+//        if !(tokenResponse?.refreshToken != nil) {
+//            ErrorUtilities.raiseException(name: kRefreshTokenRequestException)
+//        }
+//        return TokenRequest(configuration: authorizationResponse!.request!.configuration, grantType: kGrantTypeRefreshToken, authorizationCode: nil, redirectURL: nil, clientID: authorizationResponse!.request!.clientID, clientSecret:authorizationResponse!.request!.clientSecret, scope: nil, refreshToken: tokenResponse?.refreshToken, codeVerifier: nil, nonce: nil)
+//    }
 }
 
 class AuthStatePendingAction: NSObject {

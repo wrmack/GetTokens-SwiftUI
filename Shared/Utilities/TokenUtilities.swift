@@ -133,89 +133,88 @@ class TokenManager {
         self.authState = authState
     }
     
-    func performActionWithFreshTokens(action: @escaping (String?, String?, Error?) -> Void) {
-        performActionWithFreshTokens(action: action, additionalRefreshParameters: nil)
-    }
-
-    func performActionWithFreshTokens(action: @escaping (String?, String?, Error?) -> Void, additionalRefreshParameters additionalParameters: [String : AnyCodable]?) {
-        performActionWithFreshTokens(action: action, additionalRefreshParameters: additionalParameters, dispatchQueue: DispatchQueue.main)
-    }
-
-    func performActionWithFreshTokens(action: @escaping (String?, String?, Error?) -> Void, additionalRefreshParameters additionalParameters: [String : AnyCodable]?, dispatchQueue: DispatchQueue) {
-        if isTokenFresh() {
-            // access token is valid within tolerance levels, perform action
-            dispatchQueue.async(execute: {
-                action(self.authState!.tokenResponse?.accessToken, self.authState!.tokenResponse?.idToken, nil)
-            })
-            return
-        }
-        if (authState!.tokenResponse?.refreshToken == nil) {
-            // no refresh token available and token has expired
-            let tokenRefreshError: Error? = ErrorUtilities.error(code: ErrorCode.TokenRefreshError, underlyingError: nil, description: "Unable to refresh expired token without a refresh token.")
-            dispatchQueue.async(execute: {
-                action(nil, nil, tokenRefreshError)
-            })
-            return
-        }
-
-        // access token is expired, first refresh the token, then perform action
-        // assert((pendingActionsSyncObject != nil), String(format: "_pendingActionsSyncObject cannot be nil", ""))
-        let pendingAction = AuthStatePendingAction(action: action, andDispatchQueue: dispatchQueue)
-        let lockQueue = DispatchQueue(label: "pendingActionsSyncObject")
-        lockQueue.sync {
-            // if a token is already in the process of being refreshed, adds to pending actions
-            if authState!.pendingActions != nil {
-                authState!.pendingActions!.append(pendingAction)
-                return
-            }
-            // creates a list of pending actions, starting with this one
-            authState!.pendingActions = [pendingAction]
-        }
-
-        // refresh the tokens
-        let tokenRefreshRequest = authState!.tokenRefreshRequest(withAdditionalParameters: additionalParameters)
-
-        perform(tokenRequest: tokenRefreshRequest, originalAuthorizationResponse: authState!.authorizationResponse, callback: { response, error in
-            // update OIDAuthState based on response
-            if response != nil {
-                self.authState!.needsTokenRefresh = false 
-//                self.authState!.update(withTokenResponse: response, error: nil)
-            } else {
-                if (error as NSError?)?.domain == OIDOAuthTokenErrorDomain {
-                    self.authState!.needsTokenRefresh = false
-//                    self.authState!.update(withAuthorizationError: error)
-                } else {
-//                    if self.authState!.errorDelegate!.responds(to: #selector(OIDAuthStateErrorDelegate.authState(state:didEncounterTransientError:))) {
-//                        self.authState!.errorDelegate!.authState!(state:self.authState!, didEncounterTransientError: error)
-//                    }
-                }
-            }
-            // nil the pending queue and process everything that was queued up
-            var actionsToProcess: [Any] = []
-            let lockQueue = DispatchQueue(label: "self.pendingActionsSyncObject")
-            lockQueue.sync {
-                actionsToProcess = self.authState!.pendingActions!
-                self.authState!.pendingActions = nil
-            }
-            for actionToProcess: AuthStatePendingAction in actionsToProcess as? [AuthStatePendingAction] ?? [] {
-                actionToProcess.dispatchQueue!.async(execute: {
-                    actionToProcess.action!(self.authState!.tokenResponse?.accessToken, self.authState!.tokenResponse?.idToken, error)
-                })
-            }
-        })
-
-    }
-    
+//    func performActionWithFreshTokens(action: @escaping (String?, String?, Error?) -> Void) {
+//        performActionWithFreshTokens(action: action, additionalRefreshParameters: nil)
+//    }
+//
+//    func performActionWithFreshTokens(action: @escaping (String?, String?, Error?) -> Void, additionalRefreshParameters additionalParameters: [String : AnyCodable]?) {
+//        performActionWithFreshTokens(action: action, additionalRefreshParameters: additionalParameters, dispatchQueue: DispatchQueue.main)
+//    }
+//
+//    func performActionWithFreshTokens(action: @escaping (String?, String?, Error?) -> Void, additionalRefreshParameters additionalParameters: [String : AnyCodable]?, dispatchQueue: DispatchQueue) {
+//        if isTokenFresh() {
+//            // access token is valid within tolerance levels, perform action
+//            dispatchQueue.async(execute: {
+//                action(self.authState!.tokenResponse?.accessToken, self.authState!.tokenResponse?.idToken, nil)
+//            })
+//            return
+//        }
+//        if (authState!.tokenResponse?.refreshToken == nil) {
+//            // no refresh token available and token has expired
+//            let tokenRefreshError: Error? = ErrorUtilities.error(code: ErrorCode.TokenRefreshError, underlyingError: nil, description: "Unable to refresh expired token without a refresh token.")
+//            dispatchQueue.async(execute: {
+//                action(nil, nil, tokenRefreshError)
+//            })
+//            return
+//        }
+//
+//        // access token is expired, first refresh the token, then perform action
+//        // assert((pendingActionsSyncObject != nil), String(format: "_pendingActionsSyncObject cannot be nil", ""))
+//        let pendingAction = AuthStatePendingAction(action: action, andDispatchQueue: dispatchQueue)
+//        let lockQueue = DispatchQueue(label: "pendingActionsSyncObject")
+//        lockQueue.sync {
+//            // if a token is already in the process of being refreshed, adds to pending actions
+//            if authState!.pendingActions != nil {
+//                authState!.pendingActions!.append(pendingAction)
+//                return
+//            }
+//            // creates a list of pending actions, starting with this one
+//            authState!.pendingActions = [pendingAction]
+//        }
+//
+//        // refresh the tokens
+//        let tokenRefreshRequest = authState!.tokenRefreshRequest(withAdditionalParameters: additionalParameters)
+//
+//        perform(tokenRequest: tokenRefreshRequest, originalAuthorizationResponse: authState!.authorizationResponse, callback: { response, error in
+//            // update OIDAuthState based on response
+//            if response != nil {
+//                self.authState!.needsTokenRefresh = false 
+////                self.authState!.update(withTokenResponse: response, error: nil)
+//            } else {
+//                if (error as NSError?)?.domain == OIDOAuthTokenErrorDomain {
+//                    self.authState!.needsTokenRefresh = false
+////                    self.authState!.update(withAuthorizationError: error)
+//                } else {
+////                    if self.authState!.errorDelegate!.responds(to: #selector(OIDAuthStateErrorDelegate.authState(state:didEncounterTransientError:))) {
+////                        self.authState!.errorDelegate!.authState!(state:self.authState!, didEncounterTransientError: error)
+////                    }
+//                }
+//            }
+//            // nil the pending queue and process everything that was queued up
+//            var actionsToProcess: [Any] = []
+//            let lockQueue = DispatchQueue(label: "self.pendingActionsSyncObject")
+//            lockQueue.sync {
+//                actionsToProcess = self.authState!.pendingActions!
+//                self.authState!.pendingActions = nil
+//            }
+//            for actionToProcess: AuthStatePendingAction in actionsToProcess as? [AuthStatePendingAction] ?? [] {
+//                actionToProcess.dispatchQueue!.async(execute: {
+//                    actionToProcess.action!(self.authState!.tokenResponse?.accessToken, self.authState!.tokenResponse?.idToken, error)
+//                })
+//            }
+//        })
+//
+//    }
+//    
     
     func perform(tokenRequest request: TokenRequest?, originalAuthorizationResponse authorizationResponse: AuthorizationResponse?, callback: @escaping (TokenResponse?, NSError?) -> Void) {
         
+        var request = request
+        
         let URLRequest: URLRequest = request!.urlRequest()
-        //        AppAuthRequestTrace(@"Token Request: %@\nHeaders:%@\nHTTPBody: %@",
-        //                             URLRequest.URL,
-        //                             URLRequest.allHTTPHeaderFields,
-        //                             [[NSString alloc] initWithData:URLRequest.HTTPBody
-        //                                encoding:NSUTF8StringEncoding]);
+ 
         let session = URLSession.shared
+
         session.dataTask(with: URLRequest, completionHandler: { data, response, error in
             
             if error != nil {

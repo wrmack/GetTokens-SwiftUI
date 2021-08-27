@@ -196,7 +196,7 @@
 		41022AC026B32AAC00F20185 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		41022AC526B32AAC00F20185 /* GetTokens-SwiftUI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "GetTokens-SwiftUI.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		41022AC826B32AAC00F20185 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		41022ACD26B32AAC00F20185 /* GetTokens-SwiftUI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "GetTokens-SwiftUI.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		41022ACD26B32AAC00F20185 /* Get tokens.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Get tokens.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		41022ACF26B32AAC00F20185 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		41022AD026B32AAC00F20185 /* macOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = macOS.entitlements; sourceTree = "<group>"; };
 		41022AD526B32AAC00F20185 /* Tests iOS.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Tests iOS.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -351,7 +351,7 @@
 			isa = PBXGroup;
 			children = (
 				41022AC526B32AAC00F20185 /* GetTokens-SwiftUI.app */,
-				41022ACD26B32AAC00F20185 /* GetTokens-SwiftUI.app */,
+				41022ACD26B32AAC00F20185 /* Get tokens.app */,
 				41022AD526B32AAC00F20185 /* Tests iOS.xctest */,
 				41022AE026B32AAC00F20185 /* Tests macOS.xctest */,
 			);
@@ -549,7 +549,7 @@
 			);
 			name = "GetTokens-SwiftUI (macOS)";
 			productName = "GetTokens-SwiftUI (macOS)";
-			productReference = 41022ACD26B32AAC00F20185 /* GetTokens-SwiftUI.app */;
+			productReference = 41022ACD26B32AAC00F20185 /* Get tokens.app */;
 			productType = "com.apple.product-type.application";
 		};
 		41022AD426B32AAC00F20185 /* Tests iOS */ = {
@@ -1048,7 +1048,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.wrmack.GetTokens-SwiftUI";
-				PRODUCT_NAME = "GetTokens-SwiftUI";
+				PRODUCT_NAME = "Get tokens";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
 			};
@@ -1072,7 +1072,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.wrmack.GetTokens-SwiftUI";
-				PRODUCT_NAME = "GetTokens-SwiftUI";
+				PRODUCT_NAME = "Get tokens";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
 			};

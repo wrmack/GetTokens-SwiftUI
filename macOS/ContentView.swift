@@ -6,6 +6,12 @@
 //
 import SwiftUI
 
+struct Provider: Hashable {
+    var pickerText: String
+    var path: String
+}
+
+
 
 
 /// The macOS main app view.  Responsible for displaying the UI.
@@ -20,16 +26,21 @@ import SwiftUI
 ///
 /// This pattern is based on the VIP (View-Interactor-Presenter) and VMVM (View-Model-ViewModel) patterns.
 struct ContentView: View {
-    var solidCommunity = Solidcommunity_net()
-    var inruptCom = Inrupt_com()
-    var inruptNet = Inrupt_net()
-    var solidwebOrg = Solidweb_org()
-    var trinPodUs = Trinpod_us()
+    
+    let providers = [
+        Provider(pickerText: "None", path: ""),
+        Provider(pickerText: "solidcommunity.net", path: "https://solidcommunity.net"),
+        Provider(pickerText: "inrupt.com", path: "https://broker.pod.inrupt.com"),
+        Provider(pickerText: "inrupt.net", path: "https://inrupt.net"),
+        Provider(pickerText: "solidweb.org", path: "https://solidweb.org"),
+        Provider(pickerText: "trinpod.us", path: "https://trinpod.us")
+    ]
+    
     var interactor = ContentInteractor()
 
     @EnvironmentObject var authState: AuthState
     @StateObject var presenter = ContentPresenter()
-    @State var selectedProvider: Provider
+    @State var selectedProvider = Provider(pickerText: "None", path: "")
     @State var selectedProviderStr = ""
     @State var showInfo = false
     
@@ -52,15 +63,15 @@ struct ContentView: View {
 
                     Spacer()
                     Picker("Select your provider", selection: $selectedProvider) {
-                        Text(solidCommunity.pickerText).tag(Provider.solidcommunity_net)
-                        Text(inruptCom.pickerText).tag(Provider.inrupt_com)
-                        Text(inruptNet.pickerText).tag(Provider.inrupt_net)
-                        Text(solidwebOrg.pickerText).tag(Provider.solidweb_org)
-                        Text(trinPodUs.pickerText).tag(Provider.trinpod_us)
+                        ForEach(providers, id: \.self) { item in
+                            Text(item.pickerText)
+                        }
                     }
                     .pickerStyle(MenuPickerStyle())
                     .onChange(of: selectedProvider, perform: { value in
-                        fetchConfig(selectedProvider: value)
+                        if value.pickerText != "None" {
+                            fetchConfig(selectedProvider: value)
+                        }
                     })
                     .frame(width: 400, alignment: .center)
                     
@@ -81,7 +92,7 @@ struct ContentView: View {
                         pasteBoard.clearContents()
                         var stringObj = NSString()
                         presenter.displayData.forEach({ rowdata in
-                            stringObj = stringObj.appending(rowdata.header + "\n" + rowdata.content + "\n") as NSString
+                            stringObj = stringObj.appending("\(kRule1)\n\(rowdata.header)\n\n\(kRule2)\n\(rowdata.content) \n\n") as NSString
                         })
                         _ = pasteBoard.writeObjects([stringObj])
                         
@@ -165,32 +176,13 @@ struct ContentView: View {
 //                    .minimumScaleFactor(0.9)  // Avoid truncating text - scales it to fit instead
                     .frame(maxWidth: .infinity, alignment: .topLeading)
                     .font(.system(size: 12, weight: .regular))
-
-
             }
             .background(Color.white)
         }
     }
     
     func fetchConfig(selectedProvider: Provider) {
-        var providerPath: String
-        
-        switch selectedProvider {
-        case Provider.solidcommunity_net :
-            providerPath = solidCommunity.path
-        case Provider.inrupt_com :
-            providerPath = inruptCom.path
-        case Provider.inrupt_net :
-            providerPath = inruptNet.path
-        case Provider.solidweb_org :
-            providerPath = solidwebOrg.path
-        case Provider.trinpod_us :
-            providerPath = trinPodUs.path
-        default:
-            providerPath = solidCommunity.path
-        }
-        selectedProviderStr = providerPath
-        interactor.discoverConfiguration(providerPath: providerPath, presenter: presenter, authState: authState)
+        interactor.discoverConfiguration(providerPath: selectedProvider.path, presenter: presenter, authState: authState)
     }
 }
 
@@ -230,6 +222,6 @@ struct ContentView_Previews: PreviewProvider {
     @StateObject static var newPresenter = PreviewContentPresenter()
     
     static var previews: some View {
-        ContentView(presenter: newPresenter.presenter, selectedProvider: Provider.solidcommunity_net, showInfo: true)
+        ContentView(presenter: newPresenter.presenter, selectedProvider: Provider(pickerText: "solidcommunity.net", path: "https://solidcommunity.net"), showInfo: true)
     }
 }
