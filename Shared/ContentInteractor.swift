@@ -212,7 +212,7 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
             )
     }
     
-    // MARK: - Authorization and receipt of authorization code
+    // MARK: - Authentication and receipt of authorization code
     
     /// Sends an authentication request to the authorization endpoint. The request contains the client ID obtained from registering the client and a redirect url.
     /// The authorization server presents a log-in page using an 'external user-agent' (browser).  When the user has been authenticated and the user has given consent for the client (Get tokens) to access the user's resources, the authorization returns an authorization code to the redirect url.  The authorization code is used for requesting tokens.
@@ -252,12 +252,10 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
         guard let redirectURI = URL(string: authState.kRedirectURI) else { print("Error creating URL for : \(authState.kRedirectURI)"); return }
         let configuration = authState.opConfig
         let clientID = authState.registrationResponse!.clientID
-//        let clientSecret = registrationResponse!.clientSecret
         
         let request = AuthorizationRequest(
             configuration: configuration,
             clientId: clientID,
-//            clientSecret: clientSecret,
             scopes: [kScopeOpenID, kScopeProfile, kScopeOfflineAccess],
             redirectURL: redirectURI,
             responseType: kResponseTypeCode

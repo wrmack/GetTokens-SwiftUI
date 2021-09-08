@@ -81,15 +81,6 @@ class QueryUtilities: NSObject {
     }
     
     
-//    func addParameters(_ parameters: [String : AnyCodable]?) {
-//        guard parameters != nil else { return}
-//        for parameterName in (parameters!.keys) {
-//            if  parameters?[parameterName]?.value is String {
-//                addParameter(parameterName, value: parameters?[parameterName]!.value as? String )
-//            }
-//        }
-//    }
-    
     /// Builds a query items array that can be set to @c NSURLComponents.queryItems
     ///
     /// The parameter names and values are NOT URL encoded.

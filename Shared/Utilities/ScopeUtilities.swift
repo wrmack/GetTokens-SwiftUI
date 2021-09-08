@@ -22,9 +22,6 @@ class ScopeUtilities: NSObject {
     static let disallowedScopeCharacters: CharacterSet? = {
         var disallowedCharacters = CharacterSet()
         var allowedCharacters = CharacterSet()
-        //        var allowedCharacters = NSMutableCharacterSet(range: NSMakeRange(0x23, 0x5B - 0x23 + 1))
-        //        allowedCharacters.addCharacters(in: NSMakeRange(0x5D, 0x7E - 0x5D + 1))
-        //        allowedCharacters.addCharacters(in: "0x21")
         allowedCharacters.insert(charactersIn: "\u{0023}"..."\u{005B}")
         allowedCharacters.insert(charactersIn: "\u{005D}"..."\u{007E}")
         allowedCharacters.insert("\u{0021}")

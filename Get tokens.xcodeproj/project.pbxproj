@@ -165,12 +165,6 @@
 		4196BB9426B4F5A2000E1096 /* AuthorizationResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4196BB9226B4F5A2000E1096 /* AuthorizationResponse.swift */; };
 		4196BB9626B51A99000E1096 /* TokenRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4196BB9526B51A99000E1096 /* TokenRequest.swift */; };
 		4196BB9726B51A99000E1096 /* TokenRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4196BB9526B51A99000E1096 /* TokenRequest.swift */; };
-		4196BB9926B5C47C000E1096 /* AnyCodable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4196BB9826B5C47C000E1096 /* AnyCodable.swift */; };
-		4196BB9A26B5C47C000E1096 /* AnyCodable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4196BB9826B5C47C000E1096 /* AnyCodable.swift */; };
-		4196BB9C26B5C4B9000E1096 /* AnyEncodable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4196BB9B26B5C4B9000E1096 /* AnyEncodable.swift */; };
-		4196BB9D26B5C4B9000E1096 /* AnyEncodable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4196BB9B26B5C4B9000E1096 /* AnyEncodable.swift */; };
-		4196BB9F26B5C4E3000E1096 /* AnyDecodable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4196BB9E26B5C4E3000E1096 /* AnyDecodable.swift */; };
-		4196BBA026B5C4E3000E1096 /* AnyDecodable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4196BB9E26B5C4E3000E1096 /* AnyDecodable.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -281,9 +275,6 @@
 		4196BB8F26B4C529000E1096 /* QueryUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryUtilities.swift; sourceTree = "<group>"; };
 		4196BB9226B4F5A2000E1096 /* AuthorizationResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthorizationResponse.swift; sourceTree = "<group>"; };
 		4196BB9526B51A99000E1096 /* TokenRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenRequest.swift; sourceTree = "<group>"; };
-		4196BB9826B5C47C000E1096 /* AnyCodable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnyCodable.swift; sourceTree = "<group>"; };
-		4196BB9B26B5C4B9000E1096 /* AnyEncodable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnyEncodable.swift; sourceTree = "<group>"; };
-		4196BB9E26B5C4E3000E1096 /* AnyDecodable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnyDecodable.swift; sourceTree = "<group>"; };
 		41BBAF3D26CD77ED008E6F41 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -419,9 +410,6 @@
 				4196BB8926B4C4B8000E1096 /* ScopeUtilities.swift */,
 				4196BB8C26B4C4EC000E1096 /* TokenUtilities.swift */,
 				4196BB8F26B4C529000E1096 /* QueryUtilities.swift */,
-				4196BB9826B5C47C000E1096 /* AnyCodable.swift */,
-				4196BB9B26B5C4B9000E1096 /* AnyEncodable.swift */,
-				4196BB9E26B5C4E3000E1096 /* AnyDecodable.swift */,
 				4143BEB326BF083A009AC042 /* PresentationUtilities.swift */,
 			);
 			path = Utilities;
@@ -693,14 +681,12 @@
 				412D678226C73ADD00421560 /* SecureRandom.swift in Sources */,
 				412D679726C73ADD00421560 /* Decrypter.swift in Sources */,
 				412D679426C73ADD00421560 /* Encrypter.swift in Sources */,
-				4196BB9F26B5C4E3000E1096 /* AnyDecodable.swift in Sources */,
 				412D677426C73ADD00421560 /* RSAKeys.swift in Sources */,
 				412D678726C73ADD00421560 /* DataECPublicKey.swift in Sources */,
 				412D679F26C73ADD00421560 /* DataExtensions.swift in Sources */,
 				4196BB8126B49CDA000E1096 /* RegistrationRequest.swift in Sources */,
 				412D677526C73ADD00421560 /* JWSHeader.swift in Sources */,
 				412D676A26C73ADD00421560 /* RSAKeyCodable.swift in Sources */,
-				4196BB9926B5C47C000E1096 /* AnyCodable.swift in Sources */,
 				412D677926C73ADD00421560 /* DataConvertible.swift in Sources */,
 				412D679D26C73ADD00421560 /* DirectEncryptionMode.swift in Sources */,
 				4196BB8426B4A253000E1096 /* RegistrationResponse.swift in Sources */,
@@ -712,7 +698,6 @@
 				41022AE926B32AAC00F20185 /* ContentView.swift in Sources */,
 				412D678326C73ADD00421560 /* EC.swift in Sources */,
 				412D677B26C73ADD00421560 /* ECKeyCodable.swift in Sources */,
-				4196BB9C26B5C4B9000E1096 /* AnyEncodable.swift in Sources */,
 				412D676D26C73ADD00421560 /* JWKSetCodable.swift in Sources */,
 				412D676C26C73ADD00421560 /* Deserializer.swift in Sources */,
 				4196BB8726B4C224000E1096 /* AuthorizationRequest.swift in Sources */,
@@ -780,13 +765,11 @@
 				4143BEAE26BD0687009AC042 /* IDToken.swift in Sources */,
 				4134E07726CC2D8900F53105 /* JWS.swift in Sources */,
 				4134E05926CC2D8900F53105 /* Decrypter.swift in Sources */,
-				4196BBA026B5C4E3000E1096 /* AnyDecodable.swift in Sources */,
 				4134E05E26CC2D8900F53105 /* DataConvertible.swift in Sources */,
 				4134E08126CC2D9900F53105 /* DataECPublicKey.swift in Sources */,
 				4134E06A26CC2D8900F53105 /* HMACSigner.swift in Sources */,
 				4196BB8226B49CDA000E1096 /* RegistrationRequest.swift in Sources */,
 				4134E06926CC2D8900F53105 /* JWKExtensions.swift in Sources */,
-				4196BB9A26B5C47C000E1096 /* AnyCodable.swift in Sources */,
 				4134E06626CC2D8900F53105 /* HMACVerifier.swift in Sources */,
 				4134E08526CC2D9900F53105 /* AES.swift in Sources */,
 				4134E06126CC2D8900F53105 /* Encrypter.swift in Sources */,
@@ -801,7 +784,6 @@
 				4134E06326CC2D8900F53105 /* RSAKeys.swift in Sources */,
 				4134E06426CC2D8900F53105 /* RSAKeyEncryptionMode.swift in Sources */,
 				41022B1026B3974A00F20185 /* ContentPresenter.swift in Sources */,
-				4196BB9D26B5C4B9000E1096 /* AnyEncodable.swift in Sources */,
 				4134E06E26CC2D8900F53105 /* SymmetricKeyCodable.swift in Sources */,
 				4134E05A26CC2D8900F53105 /* JWK.swift in Sources */,
 				4134E05126CC2D6C00F53105 /* AESCBCEncryption.swift in Sources */,
@@ -1047,7 +1029,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.wrmack.GetTokens-SwiftUI";
+				PRODUCT_BUNDLE_IDENTIFIER = com.wrmack.GetTokens;
 				PRODUCT_NAME = "Get tokens";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
@@ -1071,7 +1053,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.wrmack.GetTokens-SwiftUI";
+				PRODUCT_BUNDLE_IDENTIFIER = com.wrmack.GetTokens;
 				PRODUCT_NAME = "Get tokens";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;

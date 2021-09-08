@@ -43,6 +43,7 @@ struct ContentView: View {
     @State var selectedProvider = Provider(pickerText: "None", path: "")
     @State var selectedProviderStr = ""
     @State var showInfo = false
+    @State var showWarning = false
     
     
     var body: some View {
@@ -77,11 +78,18 @@ struct ContentView: View {
                     
                     Image(systemName: "info.circle")
                         .onTapGesture {
-                            showInfo = showInfo ? false : true
+                            showInfo = showInfo ? false : true; showWarning = false
+                        }
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .renderingMode(.original)
+                        .frame(width:15,height:15)
+                        .padding(.leading, 10)
+                        .onTapGesture {
+                            showWarning = showWarning ? false : true; showInfo = false
                         }
                     Spacer()
                 }
-
+               
                 Spacer().fixedSize().frame(height: 30)
                 
                 // The Copy button
@@ -153,6 +161,30 @@ struct ContentView: View {
                     .frame(width: 300)
                     Spacer()
                 }
+                if showWarning {
+                    Spacer().fixedSize().frame(height:60)
+                    HStack {
+                        Spacer()
+                        Text(
+                            """
+                            Displays secret information normally only
+                            visible to a developer using developer tools.
+                            Authorization codes and refresh tokens have been
+                            redacted to mitigate unauthorised use.
+                            """
+                        )
+                        .font(Font.system(.callout))
+                        .multilineTextAlignment(.leading)
+                        .padding()
+                        .background(Color(white: 0.95))
+                        .foregroundColor(.black)
+                        .cornerRadius(10.0)
+
+                        Spacer()
+                    }
+                    .frame(width: 300)
+                    Spacer()
+                }
             }
         }
     }
@@ -186,13 +218,7 @@ struct ContentView: View {
     }
 }
 
-// For debugging
-extension View {
-   func Print(_ vars: Any...) -> some View {
-      for v in vars { print(v) }
-      return EmptyView()
-   }
-}
+
 
 // Create a ContentPresenter with data just for preview purposes
 

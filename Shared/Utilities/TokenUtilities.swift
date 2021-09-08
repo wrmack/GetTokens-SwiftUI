@@ -42,15 +42,12 @@ class TokenUtilities: NSObject {
     
     
     class func randomURLSafeString(withSize size: Int) -> String? {
-        //       var randomData = Data(count: size)  // TODO:  Use cssm_data ???
         var randomData = Data(count: size)
         let dataCount = randomData.count
-        let result = randomData.withUnsafeMutableBytes {
-            (mutableBytes: UnsafeMutablePointer<UInt8>) -> Int32 in
-            SecRandomCopyBytes(kSecRandomDefault, (dataCount), mutableBytes)
+        let result = randomData.withUnsafeMutableBytes { (mutableBytes: UnsafeMutableRawBufferPointer)  in
+            SecRandomCopyBytes(kSecRandomDefault, dataCount, mutableBytes.baseAddress!)
         }
-        //        var randomByteArray = [Int8](repeating: 0, count: size)
-        //        let result = SecRandomCopyBytes(kSecRandomDefault, (randomData.count ), &randomByteArray)
+
         if result != errSecSuccess {
             return nil
         }
@@ -133,79 +130,6 @@ class TokenManager {
         self.authState = authState
     }
     
-//    func performActionWithFreshTokens(action: @escaping (String?, String?, Error?) -> Void) {
-//        performActionWithFreshTokens(action: action, additionalRefreshParameters: nil)
-//    }
-//
-//    func performActionWithFreshTokens(action: @escaping (String?, String?, Error?) -> Void, additionalRefreshParameters additionalParameters: [String : AnyCodable]?) {
-//        performActionWithFreshTokens(action: action, additionalRefreshParameters: additionalParameters, dispatchQueue: DispatchQueue.main)
-//    }
-//
-//    func performActionWithFreshTokens(action: @escaping (String?, String?, Error?) -> Void, additionalRefreshParameters additionalParameters: [String : AnyCodable]?, dispatchQueue: DispatchQueue) {
-//        if isTokenFresh() {
-//            // access token is valid within tolerance levels, perform action
-//            dispatchQueue.async(execute: {
-//                action(self.authState!.tokenResponse?.accessToken, self.authState!.tokenResponse?.idToken, nil)
-//            })
-//            return
-//        }
-//        if (authState!.tokenResponse?.refreshToken == nil) {
-//            // no refresh token available and token has expired
-//            let tokenRefreshError: Error? = ErrorUtilities.error(code: ErrorCode.TokenRefreshError, underlyingError: nil, description: "Unable to refresh expired token without a refresh token.")
-//            dispatchQueue.async(execute: {
-//                action(nil, nil, tokenRefreshError)
-//            })
-//            return
-//        }
-//
-//        // access token is expired, first refresh the token, then perform action
-//        // assert((pendingActionsSyncObject != nil), String(format: "_pendingActionsSyncObject cannot be nil", ""))
-//        let pendingAction = AuthStatePendingAction(action: action, andDispatchQueue: dispatchQueue)
-//        let lockQueue = DispatchQueue(label: "pendingActionsSyncObject")
-//        lockQueue.sync {
-//            // if a token is already in the process of being refreshed, adds to pending actions
-//            if authState!.pendingActions != nil {
-//                authState!.pendingActions!.append(pendingAction)
-//                return
-//            }
-//            // creates a list of pending actions, starting with this one
-//            authState!.pendingActions = [pendingAction]
-//        }
-//
-//        // refresh the tokens
-//        let tokenRefreshRequest = authState!.tokenRefreshRequest(withAdditionalParameters: additionalParameters)
-//
-//        perform(tokenRequest: tokenRefreshRequest, originalAuthorizationResponse: authState!.authorizationResponse, callback: { response, error in
-//            // update OIDAuthState based on response
-//            if response != nil {
-//                self.authState!.needsTokenRefresh = false 
-////                self.authState!.update(withTokenResponse: response, error: nil)
-//            } else {
-//                if (error as NSError?)?.domain == OIDOAuthTokenErrorDomain {
-//                    self.authState!.needsTokenRefresh = false
-////                    self.authState!.update(withAuthorizationError: error)
-//                } else {
-////                    if self.authState!.errorDelegate!.responds(to: #selector(OIDAuthStateErrorDelegate.authState(state:didEncounterTransientError:))) {
-////                        self.authState!.errorDelegate!.authState!(state:self.authState!, didEncounterTransientError: error)
-////                    }
-//                }
-//            }
-//            // nil the pending queue and process everything that was queued up
-//            var actionsToProcess: [Any] = []
-//            let lockQueue = DispatchQueue(label: "self.pendingActionsSyncObject")
-//            lockQueue.sync {
-//                actionsToProcess = self.authState!.pendingActions!
-//                self.authState!.pendingActions = nil
-//            }
-//            for actionToProcess: AuthStatePendingAction in actionsToProcess as? [AuthStatePendingAction] ?? [] {
-//                actionToProcess.dispatchQueue!.async(execute: {
-//                    actionToProcess.action!(self.authState!.tokenResponse?.accessToken, self.authState!.tokenResponse?.idToken, error)
-//                })
-//            }
-//        })
-//
-//    }
-//    
     
     func perform(tokenRequest request: TokenRequest?, originalAuthorizationResponse authorizationResponse: AuthorizationResponse?, callback: @escaping (TokenResponse?, NSError?) -> Void) {
         
@@ -327,7 +251,7 @@ class TokenManager {
                 // OpenID Connect Core Section 3.1.3.7. rule #3
                 // Validates that the audience of the ID Token matches the client ID.
                 let clientID = tokenResponse.request!.clientID
-                if !idToken!.audience!.contains(clientID) {
+                if !idToken!.audience!.contains(clientID!) {
                     let invalidIDToken: NSError? = ErrorUtilities.error(code: ErrorCode.IDTokenFailedValidationError, underlyingError: nil, description: "Audience mismatch")
                     DispatchQueue.main.async(execute: {
                         callback(nil, invalidIDToken)
@@ -397,23 +321,5 @@ class TokenManager {
             })
             
         }).resume()
-    }
-    
-    
-    /*! @fn isTokenFresh
-     @brief Determines whether a token refresh request must be made to refresh the tokens.
-     */
-    func isTokenFresh() -> Bool {
-        if authState!.needsTokenRefresh {
-            // forced refresh
-            return false
-        }
-        if authState!.tokenResponse?.accessTokenExpirationDate == nil {
-            // if there is no expiration time but we have an access token, it is assumed to never expire
-            return (authState!.tokenResponse?.accessToken != nil)
-        }
-        // has the token expired?
-        let tokenFresh: Bool = Int((authState!.tokenResponse?.accessTokenExpirationDate!.timeIntervalSinceNow)!) > kExpiryTimeTolerance
-        return tokenFresh
     }
 }

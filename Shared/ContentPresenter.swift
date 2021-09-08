@@ -45,7 +45,16 @@ class ContentPresenter: ObservableObject {
         let jsonObject = try? JSONSerialization.jsonObject(with: jsonData, options: [])
         let json = try! JSONSerialization.data(withJSONObject: jsonObject!, options: [.withoutEscapingSlashes, .prettyPrinted])
         let prettyPrintedString = String(data: json, encoding: String.Encoding(rawValue: String.Encoding.utf8.rawValue) )!
-        let newContent = "The request is to:\n\(url.absoluteString)\n\nThe response is:\n\n" + prettyPrintedString
+        let conforms = prettyPrintedString.contains("solid_oidc_supported")
+        let remarks = """
+            
+            
+            *** Remarks ***
+            
+            \(conforms ? "Includes" : "Does NOT include") 'solid_oidc_supported' parameter.
+            
+            """
+        let newContent = "The request is to:\n\(url.absoluteString)\n\nThe response is:\n\n" + prettyPrintedString + remarks
         let newRowData = RowData(header: header, content: newContent)
         displayTitle = ""
         displayData.append(newRowData)
@@ -90,7 +99,7 @@ class ContentPresenter: ObservableObject {
     // Authorization request
     func presentRequest(url: URL, flowStage: String) {
         let header = getHeader(flowStage)
-        let queryString = getQueryString(url)
+        let queryString = getQueryStringComponents(url)
         let newContent = "The request is to:\n\(url.absoluteString)\n\nSummary - the request's query components:\n\n\(queryString)\n"
         let newRowData = RowData(header: header, content: newContent)
         displayData.append(newRowData)
@@ -99,14 +108,37 @@ class ContentPresenter: ObservableObject {
     
     // Registration, token exchange and userinfo responses
     func presentResponse(jsonData: Data) {
-        let jsonObject = try? JSONSerialization.jsonObject(with: jsonData, options: [])
-        let json = try! JSONSerialization.data(withJSONObject: jsonObject!, options: [.withoutEscapingSlashes, .prettyPrinted])
-        let responsePrettyPrintedString = String(data: json, encoding: String.Encoding(rawValue: String.Encoding.utf8.rawValue))!
-        let responseString = "\nThe response is:\n\n \(responsePrettyPrintedString)"
+        var jsonObject: [String : Any]
+        var responseString = ""
+        var remarks = ""
+        
+        do {
+            jsonObject = try JSONSerialization.jsonObject(with: jsonData, options: []) as! [String : Any]
+            if jsonObject["refresh_token"] != nil {
+                let newVal = "...[redacted]..." as Any
+                jsonObject["refresh_token"] = newVal
+                remarks = """
+                    
+                    
+                    *** Remarks ***
+                    
+                    Refresh code redacted to avoid malicious use by an attacker who is able to see this display or a copy.
+                    
+                    """
+            }
+            let json = try! JSONSerialization.data(withJSONObject: jsonObject, options: [.withoutEscapingSlashes, .prettyPrinted])
+            let responsePrettyPrintedString = String(data: json, encoding: String.Encoding(rawValue: String.Encoding.utf8.rawValue))!
+            responseString = "\nThe response is:\n\n \(responsePrettyPrintedString)"
+        }
+        catch {
+            print(error)
+        }
+        
+
 
         let lastRowData = displayData.removeLast()
         let lastContent = lastRowData.content
-        let updatedContent = lastContent.appending(responseString)
+        let updatedContent = lastContent.appending(responseString) + remarks
         let newRowData = RowData(header: lastRowData.header, content: updatedContent)
         displayData.append(newRowData)
         displayTitle = ""
@@ -114,12 +146,21 @@ class ContentPresenter: ObservableObject {
     
     // Authorization response
     func presentResponse(url: URL) {
-        let responseQueryString = getQueryString(url)
-        let responseString = "\nThe response is:\n\(url.absoluteString) \n\nSummary - response components: \n\n\(responseQueryString)"
+        let redactedUrlString = getRedactedUrlString(url: url)
+        let responseQueryString = getQueryStringComponents(url)
+        let responseString = "\nThe response is:\n\(redactedUrlString) \n\nSummary - response components: \n\n\(responseQueryString)"
         
         let lastRowData = displayData.removeLast()
         let lastContent = lastRowData.content
-        let updatedContent = lastContent.appending(responseString)
+        let remarks = """
+            
+            
+            *** Remarks ***
+            
+            Authorization code redacted to avoid malicious use by an attacker who is able to see this display or a copy.
+            
+            """
+        let updatedContent = lastContent.appending(responseString) + remarks
         let newRowData = RowData(header: lastRowData.header, content: updatedContent)
         displayData.append(newRowData)
         displayTitle = ""
@@ -139,7 +180,8 @@ class ContentPresenter: ObservableObject {
     }
     
     
-    // Helpers
+    // MARK: - Helpers
+    
     func getHeader(_ flowStage: String) -> String {
         var header = ""
         switch flowStage {
@@ -159,16 +201,34 @@ class ContentPresenter: ObservableObject {
         return header
     }
     
-    func getQueryString(_ url: URL) -> String {
+    func getQueryStringComponents(_ url: URL) -> String {
         
         var str = ""
         let components = URLComponents(url: url, resolvingAgainstBaseURL: true)
         let queryItems = components?.queryItems
         queryItems!.forEach({item in
+            var redactedValue = item.value!
+            if item.name == "code" {
+                redactedValue = (item.value?.prefix(5))! + "..[redacted].."
+            }
             let suff = item == queryItems!.last ? "" : "&\n"
-            str = str + item.name + "=" + item.value! + suff
+            str = str + item.name + "=" + redactedValue + suff
         })
         
         return str
+    }
+    
+    func getRedactedUrlString(url: URL) -> String {
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: true)!
+        var newQueryItems = [URLQueryItem]()
+        components.queryItems!.forEach({ queryItem in
+            var newQueryItem = queryItem
+            if queryItem.name == "code" {
+                newQueryItem.value = (newQueryItem.value?.prefix(5))! + "..[redacted].."
+            }
+            newQueryItems.append(newQueryItem)
+        })
+        components.queryItems = newQueryItems
+        return "\(components.scheme!):\(components.path)?\(components.query!)"
     }
 }

@@ -16,13 +16,6 @@ class AuthState: ObservableObject {
     var authorizationResponse: AuthorizationResponse?
     var tokenResponse: TokenResponse?
     
-    /*! @brief Array of pending actions (use @c _pendingActionsSyncObject to synchronize access).
-     */
-    var pendingActions: [AnyHashable]? = []
-    
-    /*! @brief If YES, tokens will be refreshed on the next API call regardless of expiry.
-     */
-    var needsTokenRefresh = false
     
     
     // MARK: - Update AuthState helpers
@@ -61,9 +54,7 @@ class AuthState: ObservableObject {
         let ClientSecretExpirestAtParam = "client_secret_expires_at"
         let RegistrationAccessTokenParam = "registration_access_token"
         let RegistrationClientURIParam = "registration_client_uri"
-        let kRequestKey = "request"
-        //private let kAdditionalParametersKey = "additionalParameters"
-        
+
         
         var json:[String : Any]?
         do {
@@ -75,11 +66,10 @@ class AuthState: ObservableObject {
             let returnedError: NSError? = ErrorUtilities.error(code: ErrorCode.JSONDeserializationError, underlyingError: error as NSError, description: errorDescription)
             DispatchQueue.main.async(execute: {
                 print("Registration error: \(returnedError!.localizedDescription)")
-//                self.setAuthState(nil)
             })
             return
         }
-//        self.writeToTextView(status: nil, message: data)
+        
         var registrationResponse = RegistrationResponse()
         
         registrationResponse.request = request
@@ -105,8 +95,6 @@ class AuthState: ObservableObject {
                     registrationResponse.additionalParameters[parameter.key] = parameter.value
                 }
             }
-            //let additionalParameters = OIDFieldMapping.remainingParameters(withMap: RegistrationResponse.sharedFieldMap, parameters: parameters, instance: self)
-            //self.additionalParameters = additionalParameters
             
             
             // If client_secret is issued, client_secret_expires_at is REQUIRED,
@@ -125,7 +113,6 @@ class AuthState: ObservableObject {
             let returnedError: NSError? = ErrorUtilities.error(code: ErrorCode.RegistrationResponseConstructionError, underlyingError: nil, description: "Registration response invalid.")
             DispatchQueue.main.async(execute: {
                 print("Registration error: \(returnedError!.localizedDescription)")
-//                self.setAuthState(nil)
             })
             return
         }
@@ -161,9 +148,6 @@ class AuthState: ObservableObject {
             if response != nil {
                 if (request.responseType == kResponseTypeCode) {
                     self.authorizationResponse = response
-                    // Exchanges the authorization response for tokens
-//                    self.fetchTokensFromTokenEndpoint(authorizationResponse: response) { authState, error in
-//                        callback(authState, error)
                     }
                 }
 
@@ -175,15 +159,7 @@ class AuthState: ObservableObject {
         var jsonDeserializationError: Error?
         do {
             json = try JSONSerialization.jsonObject(with: JSONData, options: [])
-        //            if jsonDeserializationError != nil {
-        //                // A problem occurred deserializing the response/JSON.
-        //                let errorDescription = "JSON error parsing token response: \(jsonDeserializationError?.localizedDescription ?? "")"
-        //                let returnedError: NSError? = ErrorUtilities.error(code: ErrorCode.JSONDeserializationError, underlyingError: jsonDeserializationError, description: errorDescription)
-        //                DispatchQueue.main.async {
-        //                    callback(nil, returnedError)
-        //                }
-        //                return
-        //            }
+
         }
         catch {
             jsonDeserializationError = error
@@ -310,36 +286,6 @@ class AuthState: ObservableObject {
         
         }
     }
-    
-    
-    
-    
-    // MARK: - OAuth Requests
-//    func tokenRefreshRequest() -> TokenRequest? {
-//        return tokenRefreshRequest(withAdditionalParameters: nil)
-//    }
-//    
-//    
-//    func tokenRefreshRequest(withAdditionalParameters additionalParameters: [String : AnyCodable]?) -> TokenRequest? {
-//        // TODO: Add unit test to confirm exception is thrown when expected
-//        if !(tokenResponse?.refreshToken != nil) {
-//            ErrorUtilities.raiseException(name: kRefreshTokenRequestException)
-//        }
-//        return TokenRequest(configuration: authorizationResponse!.request!.configuration, grantType: kGrantTypeRefreshToken, authorizationCode: nil, redirectURL: nil, clientID: authorizationResponse!.request!.clientID, clientSecret:authorizationResponse!.request!.clientSecret, scope: nil, refreshToken: tokenResponse?.refreshToken, codeVerifier: nil, nonce: nil)
-//    }
 }
 
-class AuthStatePendingAction: NSObject {
-    
-    
-    private(set) var action: ((String?, String?, Error?) -> Void?)?
-    private(set) var dispatchQueue: DispatchQueue?
-    
-    
-    init(action: @escaping (String?, String?, Error?) -> Void, andDispatchQueue dispatchQueue: DispatchQueue) {
-        super.init()
-        
-        self.action = action
-        self.dispatchQueue = dispatchQueue
-    }
-}
+

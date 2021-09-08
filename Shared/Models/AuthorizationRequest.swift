@@ -102,12 +102,6 @@ class AuthorizationRequest: NSObject  {
     /// - remark: `code_challenge_method`
     private(set) var codeChallengeMethod: String?
     
-    /// The client's additional authorization parameters.
-    ///
-    /// See IETF [rfc6749](https://tools.ietf.org/html/rfc6749#section-3.1)
-    ///
-//    private(set) var additionalParameters: [String : AnyCodable]?
-    
     
     
     class func isSupportedResponseType(_ responseType: String?) -> Bool {
