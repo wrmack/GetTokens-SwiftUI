@@ -1,11 +1,11 @@
 //
-//  AESDecrypter.swift
+//  JWKExtensions.swift
 //  JOSESwift
 //
-//  Created by Daniel Egger on 19/10/2017.
+//  Created by Daniel Egger on 21.12.17.
 //
 //  ---------------------------------------------------------------------------
-//  Copyright 2018 Airside Mobile Inc.
+//  Copyright 2019 Airside Mobile Inc.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -23,24 +23,26 @@
 
 import Foundation
 
-/// An `AsymmetricDecrypter` to decrypt cipher text with a `RSA` algorithm.
-internal struct RSADecrypter: AsymmetricDecrypter {
-    typealias KeyType = RSA.KeyType
+// MARK: Subscript
 
-    let algorithm: AsymmetricKeyAlgorithm
-    let privateKey: KeyType?
-
-    init(algorithm: AsymmetricKeyAlgorithm, privateKey: KeyType? = nil) {
-        self.algorithm = algorithm
-        self.privateKey = privateKey
+public extension JWK {
+    subscript(parameter: String) -> String? {
+        return parameters[parameter]
     }
+}
 
-    func decrypt(_ ciphertext: Data) throws -> Data {
-        guard let privateKey = privateKey else {
-            // If no key is set, we're using direct encryption so the encrypted key is empty.
-            return Data()
+// MARK: Encoding Convenience Functions
+
+public extension JWK {
+    func jsonString() -> String? {
+        guard let json = try? JSONEncoder().encode(self) else {
+            return nil
         }
 
-        return try RSA.decrypt(ciphertext, with: privateKey, and: algorithm)
+        return String(data: json, encoding: .utf8)
+    }
+
+    func jsonData() -> Data? {
+        return try? JSONEncoder().encode(self)
     }
 }
