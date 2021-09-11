@@ -8,7 +8,7 @@ This code produces an iOS app and a macOS app.  It has two basic functions:
 - the app itself displays a read-out of a Solid-OIDC flow using a selection of Solid OIDC Providers
 - the code may be useful to developers creating Solid apps using the Apple ecosytem and the Swift programming language
 
-
+There is further info on the Wiki pages.
 
 ## Design
 
