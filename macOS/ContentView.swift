@@ -52,15 +52,15 @@ struct ContentView: View {
 //        Print("ContentView body called")
         ZStack {
             VStack(alignment: .center) {
-                Spacer().fixedSize().frame(height: 30)
+                Spacer().fixedSize().frame(height: 60)
 
                 // Select provider
                 HStack {
-                    Image("tokenIcon")
-                        .resizable()
-                        .antialiased(true)
-                        .frame(width:40,height:28)
-                        .padding(.all, 20)
+//                    Image("tokenIcon")
+//                        .resizable()
+//                        .antialiased(true)
+//                        .frame(width:40,height:28)
+//                        .padding(.all, 20)
 
                     Spacer()
                     Picker("Select your provider", selection: $selectedProvider) {
@@ -89,6 +89,7 @@ struct ContentView: View {
                         }
                     Spacer()
                 }
+//                .padding(.top,60)
                
                 Spacer().fixedSize().frame(height: 30)
                 
@@ -146,7 +147,10 @@ struct ContentView: View {
                         Spacer()
                         Text(
                             """
-                            The authorization stage requires you to log in. In order to view the full flow you need to have an account with the selected provider.  If you do not have an account you will still be able to view the discovery and registration stages.
+                            The authorization stage requires you to log in. In order to \
+                            view the full flow you need to have an account with the selected provider.
+                            If you do not have an account you will still be able to view the \
+                            discovery and registration stages.
                             """
                         )
                         .font(Font.system(.callout))
@@ -167,9 +171,9 @@ struct ContentView: View {
                         Spacer()
                         Text(
                             """
-                            Displays secret information normally only
-                            visible to a developer using developer tools.
-                            Authorization codes and refresh tokens have been
+                            Displays secret information normally only \
+                            visible to a developer using developer tools. \
+                            Authorization codes and refresh tokens have been \
                             redacted to mitigate unauthorised use.
                             """
                         )

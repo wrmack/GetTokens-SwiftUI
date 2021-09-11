@@ -167,16 +167,28 @@ class ContentPresenter: ObservableObject {
     }
     
     func presentError(error: Error) {
-        let lastRowData = displayData.removeLast()
-        let lastContent = lastRowData.content
-        let updatedContent = lastContent.appending("""
+        if displayData.count == 0 {
+            let rowHeader = "Received an error"
+            let rowContent = """
             
             ERROR: \(error.localizedDescription)
             
             """
-        )
-        let newRowData = RowData(header: lastRowData.header, content: updatedContent)
-        displayData.append(newRowData)
+            let newRowData = RowData(header: rowHeader, content: rowContent)
+            displayData.append(newRowData)
+        }
+        else {
+            let lastRowData = displayData.removeLast()
+            let lastContent = lastRowData.content
+            let updatedContent = lastContent.appending("""
+                
+                ERROR: \(error.localizedDescription)
+                
+                """
+            )
+            let newRowData = RowData(header: lastRowData.header, content: updatedContent)
+            displayData.append(newRowData)
+        }
     }
     
     

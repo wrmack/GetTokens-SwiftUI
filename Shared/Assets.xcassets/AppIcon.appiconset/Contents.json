@@ -93,26 +93,31 @@
       "size" : "1024x1024"
     },
     {
+      "filename" : "appIcon16x16.png",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "16x16"
     },
     {
+      "filename" : "appIcon32x32-1.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "16x16"
     },
     {
+      "filename" : "appIcon32x32.png",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "32x32"
     },
     {
+      "filename" : "appIcon64x64.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "32x32"
     },
     {
+      "filename" : "appIcon128x128.png",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "128x128"

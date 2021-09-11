@@ -1,8 +1,13 @@
 #  Get tokens
 
+<a href="https://apps.apple.com/us/app/get-tokens/id1585088360?mt=12&amp;itsct=apps_box_badge&amp;itscg=30200" style="display: inline-block; overflow: hidden; border-top-left-radius: 13px; border-top-right-radius: 13px; border-bottom-right-radius: 13px; border-bottom-left-radius: 13px; width: 250px; height: 83px;"><img src="https://tools.applemediaservices.com/api/badges/download-on-the-mac-app-store/black/en-us?size=250x83&amp;releaseDate=1631318400&h=b65ef15c992a18e9ac8528d1a720d7ac" alt="Download on the Mac App Store" style="border-top-left-radius: 13px; border-top-right-radius: 13px; border-bottom-right-radius: 13px; border-bottom-left-radius: 13px; width: 250px; height: 83px;"></a>
+
+For Solid developers who do not develop using the Apple platform but do have a recent Macbook, Get tokens can be downloaded from the Apple App Store.
+
 This code produces an iOS app and a macOS app.  It has two basic functions:
 - the app itself displays a read-out of a Solid-OIDC flow using a selection of Solid OIDC Providers
 - the code may be useful to developers creating Solid apps using the Apple ecosytem and the Swift programming language
+
 
 
 ## Design
