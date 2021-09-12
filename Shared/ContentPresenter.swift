@@ -75,9 +75,16 @@ class ContentPresenter: ObservableObject {
             }
             // The body is a string with key-value pairs separated by '&'
             else {
-                requestPrettyPrintedString = String(data: urlRequest.httpBody!, encoding: .utf8)!
-                    .components(separatedBy: "&")
-                    .joined(separator: "&\n")
+                let requestStringComponents = String(data: urlRequest.httpBody!, encoding: .utf8)!.components(separatedBy: "&")
+                var newComponents = [String]()
+                requestStringComponents.forEach({ item in
+                    var str = item
+                    if item.prefix(4) == "code" {
+                        str = item.prefix(10) + "...[Redacted}..."
+                    }
+                    newComponents.append(str)
+                })
+                requestPrettyPrintedString = newComponents.joined(separator: "&\n")
             }
         }
         let headerFieldsString = urlRequest.allHTTPHeaderFields!.map {
