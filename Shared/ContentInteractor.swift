@@ -155,7 +155,7 @@ class ContentInteractor: NSObject, ASWebAuthenticationPresentationContextProvidi
         request.configuration = configuration
         request.redirectURIs = [redirectURI]
         request.responseTypes = ["code"]
-        request.grantTypes = ["authorization_code"]
+        request.grantTypes = ["authorization_code", "refresh_token"]
         request.subjectType = nil
         request.tokenEndpointAuthenticationMethod = "none"
         request.initialAccessToken = nil

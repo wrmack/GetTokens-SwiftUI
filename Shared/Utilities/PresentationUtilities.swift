@@ -49,7 +49,13 @@ Human-readable string name of the client to be presented to the end-user during 
 authorization [RFC 7591]. The client is our app ('Get tokens').
 
 response_types
-We just want an authorization code from the identity provider so we set this to 'code'.
+We will be using the Authorization Code Flow where all tokens will be returned from the \
+token endpoint, so set this to 'code'.
+
+grant_types
+An authorization grant is a credential representing the resource owner's authorization to \
+access its protected resources.  It is used by the client to obtain an access token (RFC 6749).
+We register for two types: authorization_code and refresh_token.  
 
 The OpenID Provider responds confirming the data it has regiestered and provides a 'client_id'.
 
@@ -120,7 +126,9 @@ redirect_uri
 As before
 
 grant_type
-Set to 'authorization_code'.  We are using the authorization code to request tokens. (Other grant types include 'refresh_token')
+Set to 'authorization_code'.  We are using the authorization code to request tokens. \
+We also registered 'refresh_token' as a grant_type and could use this as the grant_type \
+once it is granted.
 
 code
 The authorization code provided in the previous stage
